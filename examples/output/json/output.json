@@ -1,0 +1,22 @@
+{ 
+  "items": {
+		"bee" : {
+  			"label": "This is a bee",
+  			"src": "json/bee.jpg",
+  			"width" : "220",
+  			"height": "240"
+		},
+		"robot" : {
+  			"label": "Robot marching in the hills",
+  			"src": "json/robot.jpg",
+  			"width" : "220",
+  			"height": "240"
+		},
+		"ship" : {
+  			"label": "Ship",
+  			"src": "json/ship.png",
+  			"width" : "220",
+  			"height": "240"
+		}
+	}
+}
