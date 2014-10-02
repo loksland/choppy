@@ -17,15 +17,43 @@ Instructions
 Open a PSD and add a layer comp for each image to be outputted.  
 Eg. 'output/mypic.png'
 
-Run choppy:
+Run choppy in command line:
 ```bash
 $ choppy
 ```
 
-PSD config
-----------
+An image called 'mypic.png' will be saved to the 'output/' directory.
 
-Configuration variables are set in the layer comp description in the following format:  
+Why?
+----
+
+- Website images and game sprite assets can usually be broken up into separate psds that 
+follow logical groupings. Eg. "share-icons.psd", "player-sprites.psd".  
+This way you aren't left with a giant psd with 100s of slices, often hidden or only 
+applicable to one layer comp in the design psd. You also avoid the opposite problem, where
+you have a separate PSD for every asset.
+- Slices in Photoshop are combersome to make, difficult to maintain and often hidden. 
+Being able to output layer comps by their bounds means you don't have to drag dimension 
+handles ever again.
+- Design psds tend to messy and bloated with the process of design. An output-specific psd
+can still include site / game context while still focusing on assets at hand. These lean 
+psds can then be added to source control without wasting space.
+- The ability to output html / json / or custom wrapping text as well as images means alt 
+text and dimension data can be configured in one place and updated automatically on 
+output. 
+
+Requirements
+------------
+
+- Node + npm
+- Photoshop (tested for Photoshop CC 2014)
+
+Documentation
+-------------
+
+**<em>Check out the PSD files in /examples/ to see choppy in action.</em>**
+
+Configuration variables are set in the layer comp comment in the following format:  
 
 Eg. Layer comp called  
 "img/mypic.png" with comment:
@@ -43,7 +71,7 @@ The extension, if set, will define the file format of the outputted file.
 
 Variables:
 - **alt**  
-If the description area hasn't got variables then the text will be assumed as alt text.
+If the comment area hasn't got variables then the text will be assumed as alt text.
 - **cropToBounds**  
 If true then the output image dimensions will be informed by the bounds of the layer comp 
 rather than the PSD dimensions.
@@ -127,7 +155,7 @@ Templates
 - Default template is "img".
 - Templates can be of any extension.
 
-###Template vars###
+###Vars###
 - src  
 The output image source path relative to config settings.
 - width
