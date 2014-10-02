@@ -8,7 +8,7 @@
   },
   "repository": {
     "type": "git",
-    "url": "https://github.com/loksland/cutter.git"
+    "url": "https://github.com/loksland/choppy.git"
   },
   "keywords": [
     "photoshop",
@@ -21,9 +21,9 @@
   "author": "loksland",
   "license": "MIT",
   "bugs": {
-    "url": "https://github.com/loksland/cutter/issues"
+    "url": "https://github.com/loksland/choppy/issues"
   },
-  "homepage": "https://github.com/loksland/cutter",
+  "homepage": "https://github.com/loksland/choppy",
   "preferGlobal": "true",
   "bin": {
     "choppy" : "choppy.js"
