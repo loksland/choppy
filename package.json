@@ -1,6 +1,6 @@
 {
   "name": "choppy",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Choppy is a NodeJS script to perform image slicing and exporting from Photoshop with layer comp configuration.",
   "main": "choppy.js",
   "scripts": {
