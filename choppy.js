@@ -3,6 +3,7 @@
 var photoshop = require('photoshop');
 var fs = require('fs'); 	
 var path = require('path'); 
+var spawn = require('child_process').spawn;
 
 var Choppy = function() {
 	
@@ -14,6 +15,18 @@ var Choppy = function() {
 	this.templateFiles = [];
 	var coreTemplateDirPath = __dirname + path.sep + this.TEMPLATE_DIR_NAME + path.sep;
 	Choppy.addFilePathsInDirToArray(coreTemplateDirPath, this.templateFiles);
+	
+	// Get arg
+	var dryRun = false;
+	var outputSelected = false;
+	var argv = require('minimist')(process.argv.slice(2));
+	for (var k = 0; k < argv._.length; k++){
+		if (String(argv._[k]).toLowerCase() === 'dry'){
+			dryRun = true;			
+		} else if (String(argv._[k]).toLowerCase() === 'sel'){
+			outputSelected = true;
+		}
+	}
 	
 	var self = this;
 	
@@ -29,6 +42,8 @@ var Choppy = function() {
 				baseConfigData = JSON.parse(fs.readFileSync(configFilePath, 'utf8'));
 		} 
 		
+		baseConfigData.basePath = Choppy.ensureDirPathHasTrailingSlash(baseConfigData.basePath, path.sep);
+		
 		// Check for templates
 		var localTemplateDirPath = psdContainingDir + self.TEMPLATE_DIR_NAME + path.sep;
 		if (fs.existsSync(localTemplateDirPath)) {
@@ -38,7 +53,7 @@ var Choppy = function() {
 		var tplData = self.getTemplateDataFromFiles(self.templateFiles);
 		
 		var responseBuffer = '';
-		var processStream = photoshop.createStream(processJSX, {tplData:tplData, pathSep:path.sep, baseConfigData:baseConfigData, TEMPLATE_PARTS:self.TEMPLATE_PARTS}).on('data', function(data) {
+		var processStream = photoshop.createStream(processJSX, {tplData:tplData, pathSep:path.sep, baseConfigData:baseConfigData, TEMPLATE_PARTS:self.TEMPLATE_PARTS, dryRun:dryRun, outputSelected:outputSelected}).on('data', function(data) {
   		
   		var dataStr = data.toString();
   		if (dataStr.substr(0,6) === 'debug:'){
@@ -55,10 +70,62 @@ var Choppy = function() {
 			console.log('\n\n' + responseData.outputString + '\n\n');
 			
 			if (responseData.outputFilePath && responseData.outputFilePath.length > 0){
-				fs.writeFileSync(psdContainingDir + responseData.outputFilePath, responseData.outputString);
+				
+				var outputFileContents = responseData.outputString;
+				
+				if (responseData.outputTags && responseData.outputTags.start && responseData.outputTags.end && responseData.outputTags.start.length > 0 && responseData.outputTags.end.length > 0){
+					var existingContents = fs.readFileSync(psdContainingDir + responseData.outputFilePath, 'utf8');
+					var searchPattern = new RegExp(responseData.outputTags.start.replace(/[-/\\^$*+?.()|[\]{}]/g, '\\$&') + '(.|[\r\n])*' + responseData.outputTags.end.replace(/[-/\\^$*+?.()|[\]{}]/g, '\\$&'), 'gi');
+					outputFileContents = existingContents.replace(searchPattern, responseData.outputTags.start+responseData.outputString+responseData.outputTags.end);
+					var tagMatch = existingContents.match(searchPattern);
+					if (tagMatch === null){
+						throw new Error('Output tags not found.');
+					} else {
+						console.log('Found tags: "'+responseData.outputTags.start+'" and "'+responseData.outputTags.end+'".\n');
+					}
+				}
+				
+				fs.writeFileSync(psdContainingDir + responseData.outputFilePath, outputFileContents);
 				console.log('Wrote to ' + responseData.outputFilePath + '.\n');
+				
+				// Optimize using imageoptim-cli
+				
+				if (!dryRun){
+				
+					var optimizeFilePaths = [];
+					for (var j = 0; j < responseData.outputData.length; j++){
+						if (responseData.outputData[j].optimize){
+							optimizeFilePaths.push(psdContainingDir + baseConfigData.basePath + responseData.outputData[j].src); 
+						}
+					}
+					if (optimizeFilePaths.length > 0){
+						var isMac = /^darwin/.test(process.platform);
+						if (!isMac){
+							console.log('Cannot optimize on non-Mac systems. See https://github.com/JamieMason/ImageOptim-CLI for more info.');
+						} else {
+							
+							var imageoptimFilePath = require.resolve('imageoptim-cli');
+							
+							console.log('Optimizing...\n');
+							var optimize = spawn('sh', [__dirname + path.sep + 'optimize.sh', imageoptimFilePath, optimizeFilePaths.join('\n')]);
+	
+							optimize.stdout.on('data', function (data) {  
+								console.log(data.toString());
+							});
+
+							optimize.stderr.on('data', function (data) {
+								console.log('stderr: ' + data);
+							});
+
+							optimize.on('exit', function (code) {
+								if (code !== 0){
+									console.log('Error encountered.\n');
+								}
+							});
+						}
+					}
+				}
 			}
-			
  		});		
 	});
 };
@@ -149,16 +216,18 @@ function processJSX(stream, props){
 	var pathSep = props.pathSep;
 	var baseConfigData = props.baseConfigData;
 	var TEMPLATE_PARTS = props.TEMPLATE_PARTS;
+	var dryRun = props.dryRun;
+	var outputSelected = props.outputSelected;
 	
 	// The default image prop fallbacks.
-	var PROP_DEFAULTS = {alt: '', cropToBounds: false, template: 'img', ext: 'jpg', quality: 80, flipX: false, flipY: false, relativePath: './', basePath: './'};
-	var BOOL_PROPS = ['cropToBounds', 'flipX', 'flipY'];
+	var PROP_DEFAULTS = {alt: '', cropToBounds: false, template: 'img', ext: 'jpg', quality: 80, flipX: false, flipY: false, relativePath: './', basePath: './', matte:null, colors:256, optimize:false};
+	var BOOL_PROPS = ['cropToBounds', 'flipX', 'flipY', 'optimize'];
 	var NUM_PROPS = ['quality'];
 	// These will have a trailing slash added if needed.
 	var DIR_PROPS = ['relativePath', 'basePath'];
 	// These will be set to config data if not set.
 	var CONFIG_PROP_DEFAULTS = baseConfigData;
-	var VALID_OUTPUT_EXTS = ['jpg', 'png'];
+	var VALID_OUTPUT_EXTS = ['jpg', 'png', 'gif'];
 	var CONFIG_LAYERCOMP_NAME = '{choppy}';
 	var TEMPLATE_VAR_PRE = '%';
 	var TEMPLATE_VAR_POST = '%';
@@ -242,6 +311,9 @@ function processJSX(stream, props){
 			delete compData['base'];
 			configData = compData;
 		} else {
+		
+			compData.selected = layerComp.selected;
+		
 			// Override relative path if defined in layer comp name.
 			var layerCompRelativePath = getContainingDirPath(layerComp.name, pathSep);
 			if (layerCompRelativePath && layerCompRelativePath.length > 0){		
@@ -249,7 +321,6 @@ function processJSX(stream, props){
 			}
 			outputData.push(compData);
 		}
-		
 	}
 	
 	takeSnapshot();
@@ -262,12 +333,6 @@ function processJSX(stream, props){
 		var outputData = [];
 		// Apply layer comp
 		configData.layerCompRef.apply();
-		
-		/*
-		stream.writeln(
-			'debug:' + JSON.stringify(doc.layers, null, 2)
-		);
-		*/
 		
 		for(var i = 0 ; i < doc.layers.length; i++){
 			
@@ -301,7 +366,8 @@ function processJSX(stream, props){
 		outputData[p] = extendObjWithDefaults(outputData[p], configData);
 		// Enforce own "!" props.
 		outputData[p] = extendObjWithDefaults(outputData[p], outputData[p]);
-		
+		outputData[p].index = p;
+	
 		// Remove ! props that have a double up.
 		// Remove ! for those that don't.
 		var delProps = [];
@@ -318,18 +384,18 @@ function processJSX(stream, props){
 		for (var qq = 0; qq < delProps.length ; qq++){
 			delete outputData[p][delProps[qq]]
 		}
-		
+	
 		// Make sure trailing slashes are present.
 		ensureDirPropsHaveTrailingSlash(outputData[p], DIR_PROPS, pathSep);
-		
+	
 		// If no alt text then clean up base and use as a fallback.		
 		if (!outputData[p].alt || outputData[p].alt.length =0){
 			outputData[p].alt = filenameBaseToAltText(outputData[p].base);
 		}
-		
+	
 		// Disable uppercase file output.
 		outputData[p].base = cleanUpFileNameBase(outputData[p].base);
-		
+	
 		// Now you have enough to get src
 		outputData[p].srcFileName = outputData[p].base + '.' + outputData[p].ext;
 		outputData[p].src = outputData[p].relativePath + outputData[p].srcFileName;
@@ -349,7 +415,7 @@ function processJSX(stream, props){
 			var layerComp = outputData[p].layerCompRef;
 			layerComp.apply();
 		}
-		
+	
 		var outputBounds;
 		if (outputData[p].cropToBounds){
 			outputBounds = getVisibleBounds(doc);
@@ -357,48 +423,76 @@ function processJSX(stream, props){
 			outputBounds = copyBounds(psdBounds);
 		}
 		outputData[p].outputBounds = outputBounds;
+	
+		outputData[p].x = outputBounds[0].value;
+		outputData[p].y = outputBounds[1].value;
+	
+		outputData[p].width = String(outputBounds[2].value-outputBounds[0].value); 
+		outputData[p].height = String(outputBounds[3].value-outputBounds[1].value);
 		
-		var revertRequired = false;
-		if (!areBoundsEqual(psdBounds, outputData[p].outputBounds)){
-			revertRequired = true;
-			doc.crop(outputData[p].outputBounds); 			
-		}
+		if (!dryRun && (!outputSelected || outputData[p].selected)){
+	
+			var revertRequired = false;
+			if (!areBoundsEqual(psdBounds, outputData[p].outputBounds)){
+				revertRequired = true;
+				doc.crop(outputData[p].outputBounds);
+			} 
+	
+			if (outputData[p].flipX){
+				revertRequired = true;
+				doc.flipCanvas(Direction.HORIZONTAL);
+			} 
+	
+			if (outputData[p].flipY){
+				revertRequired = true;
+				doc.flipCanvas(Direction.VERTICAL);
+			}
 		
-		if (outputData[p].flipX){
-			revertRequired = true;
-			doc.flipCanvas(Direction.HORIZONTAL);
-		} 
-		
-		if (outputData[p].flipY){
-			revertRequired = true;
-			doc.flipCanvas(Direction.VERTICAL);
-		}
-		
-		// Ouput image
-		
-		outputData[p].width = String(doc.width.value);
-		outputData[p].height = String(doc.height.value);
-		
-		var exportOptions = new ExportOptionsSaveForWeb();
-		if (outputData[p].ext == 'png'){
-			exportOptions.PNG8 = false;
-			exportOptions.transparency = true;
-			exportOptions.interlaced = false;
-			exportOptions.quality = 100;
-			exportOptions.includeProfile = false;
-			exportOptions.format = SaveDocumentType.PNG; //-24 //JPEG, COMPUSERVEGIF, PNG-8, BMP 
-		} else if (outputData[p].ext == 'jpg'){
-			exportOptions = new ExportOptionsSaveForWeb();
-			exportOptions.format = SaveDocumentType.JPEG;
-			exportOptions.quality = outputData[p].quality;
-		} else {
-			throw new Error('Export format "'+outputData[p].ext+'" not found.');
-		}
-		
-		doc.exportDocument(new File(outputData[p].exportPath), ExportType.SAVEFORWEB, exportOptions);
-		
-		if (revertRequired){
-			revertSnapshot(doc);
+			// Ouput image
+			var exportOptions = new ExportOptionsSaveForWeb();
+			if (outputData[p].ext == 'png'){
+				exportOptions.PNG8 = false;
+				exportOptions.transparency = true;
+				exportOptions.interlaced = false;
+				exportOptions.quality = 100;
+				exportOptions.includeProfile = false;
+				exportOptions.format = SaveDocumentType.PNG;//-8; //SaveDocumentType.PNG; //-24 //JPEG, COMPUSERVEGIF, PNG-8, BMP 
+			} else if (outputData[p].ext == 'jpg'){
+				exportOptions = new ExportOptionsSaveForWeb();
+				exportOptions.format = SaveDocumentType.JPEG;
+				exportOptions.quality = outputData[p].quality;
+			} else if (outputData[p].ext == 'gif'){
+				exportOptions.ditherAmount = 0;
+				exportOptions.dither = Dither.NOISE; // Dither.NONE; // 
+				exportOptions.palette = Palette.LOCALPERCEPTUAL; //Palette.LOCALADAPTIVE;
+				exportOptions.format = SaveDocumentType.COMPUSERVEGIF;
+				exportOptions.forced = ForcedColors.BLACKWHITE;
+				exportOptions.interlaced = false;
+				exportOptions.preserverExactColors = true;			
+				if (outputData[p].matte){
+					var userMatteColor = hexToRGB(outputData[p].matte);				
+					var matteColor = new RGBColor();
+					matteColor.red = userMatteColor.r;
+					matteColor.green = userMatteColor.g;
+					matteColor.blue = userMatteColor.b;
+					exportOptions.matteColor = matteColor;
+				}			
+				exportOptions.colors = outputData[p].colors;
+				exportOptions.transparency = true;
+							
+			} else {
+				throw new Error('Export format "'+outputData[p].ext+'" not found.');
+			}
+	
+			doc.exportDocument(new File(outputData[p].exportPath), ExportType.SAVEFORWEB, exportOptions);
+	
+			if (revertRequired){
+				revertSnapshot(doc);
+			}
+			
+		} else if (outputSelected){
+			// Don't optimize if didn't output
+			outputData[p].optimize = false;
 		}
 		
 		var templateFound = false;
@@ -448,18 +542,23 @@ function processJSX(stream, props){
 			outputString += output[TEMPLATE_PARTS[t]].join('');
 		}
 	}
-		
+	
 	// Look for output file path
 	var outputFilePath = '';
+	var outputTags = {};
 	if (configData && configData.outputFilePath && configData.outputFilePath.length > 0){
 		configData.basePath = ensureDirPathHasTrailingSlash(configData.basePath, pathSep);
 		outputFilePath = configData.basePath + configData.outputFilePath;
+		if (configData.outputTagStart && configData.outputTagEnd && configData.outputTagStart.length > 0 && configData.outputTagEnd.length > 0){
+			outputTags = {start:configData.outputTagStart, end:configData.outputTagEnd};
+		}
 	}
 	
 	// Write response back to node
 	var responseData = {outputData: cleanupOutputDataForOutput(outputData,['layerCompRef', 'layerRef']),
 											outputString: outputString,
-											outputFilePath: outputFilePath}
+											outputFilePath: outputFilePath,
+											outputTags: outputTags}
 											
 	stream.writeln(
 		JSON.stringify(responseData, null, 2)
@@ -467,6 +566,15 @@ function processJSX(stream, props){
 	
 	// JSX functions
 	// -------------
+	
+	function hexToRGB(hex){
+		var result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
+    return result ? {
+			r: parseInt(result[1], 16),
+			g: parseInt(result[2], 16),
+			b: parseInt(result[3], 16)
+		} : null;
+	}
 	
 	function cleanUpFileNameBase(base){
 	
@@ -553,7 +661,8 @@ function processJSX(stream, props){
 			var layer = doc.layers[i];
 			if (layer.visible){						
 				if (!anyBoundsFound){
-					cropBounds = copyBounds(layer.bounds);  
+					cropBounds = copyBounds(layer.bounds);
+					anyBoundsFound = true; 
 				} else {
 					if (layer.bounds[tlXi].value < cropBounds[tlXi].value){
 						cropBounds[tlXi] = layer.bounds[tlXi];
@@ -567,7 +676,7 @@ function processJSX(stream, props){
 					if (layer.bounds[brYi].value > cropBounds[brYi].value){
 						cropBounds[brYi] = layer.bounds[brYi];
 					}
-					if (areBoundsEqual(cropBounds, docBounds)){
+					if (areBoundsEqual(cropBounds, docBounds)){					  
 						break;
 					}
 				}
