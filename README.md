@@ -11,8 +11,8 @@ Install choppy
 $ npm install choppy -g
 ```
 
-Instructions
-------------
+Getting started
+---------------
 
 Open a PSD and add a layer comp for each image to be outputted.  
 Eg. 'output/mypic.png'
@@ -70,60 +70,58 @@ to the global |basePath|. Eg. "img/mypic.jpg"
 The extension, if set, will define the file format of the outputted file.
 
 Variables:
-- **alt**  
-If the comment area hasn't got variables then the text will be assumed as alt text.
-- **cropToBounds**  
+- **alt** (string)
+The alternate text to be outputted for the image. If the comment area hasn't got variables 
+then the text will be assumed as alt text.
+- **cropToBounds** (boolean)
 If true then the output image dimensions will be informed by the bounds of the layer comp 
 rather than the PSD dimensions.
-- **template**  
+- **template** (string)
 Either custom template string or the slug of a template file. Default is "img".
-- **ext**  
+- **ext** (string) 
 Optional extension to be applied. This will only apply if there is no extension in the 
-layer comp name.
-- **quality**
-Image output quality. 0-100.
-- **flipX**, **flipY**
-Flip the output horizontally / vertically.
-- **relativePath**
+layer comp name. Valid entries are jpg, gif or png.
+- **flipX**, **flipY** (boolean)
+Flip the output horizontally / vertically. Default is false.
+- **relativePath** (string)
 Optional output path relative to |basePath|. This will only apply if there is no path
 defined in the image layer comp itself.
--- **basePath**  
+-- **basePath**  (string)
 The relative path from the PSD to the output directory. 
 It's recommended to use .choppy instead for defining this variable.
+- **quality** (integer)
+Image output quality for jpgs only. 0-100. Default is 80.
+- **matte** (string)
+Set the matte color for gif as a hex string. Eg. #FF3300. Hash optional, case insensitive.
+- **colors** (integer)
+Set the number of colors for a gif. 1-256.
+- **optimize** (boolean)
+Utilizes the amazing [ImageOptim-CLI](https://github.com/JamieMason/ImageOptim-CLI) to compress the outputted image. Mac only. 
+Requires free software [ImageAlpha](http://pngmini.com/) and [ImageOptim](http://imageoptim.com/) installed. 
 
 ###{choppy} Layer comp###
 
 Optionally define the default settings for all output images in the current PSD. 
 
-All image vars can be set and will be used as defaults if they are not set in the image
+All image vars above can be set and will be used as defaults if they are not set in the image
 layer comps.
 
-###Output layers###
-
-A special variable called |outputLayers| is available to the {choppy} layer comp. If set to true
-then all layers associated with the {choppy} layercomp will be outputted 
-individually without creating layer comps for each. Any other layer comps are ignored.
-
-It's recommended to define global |relativePath| and |ext| as well with this setting.
-{choppy} Layer comp comment:
-```
-outputLayers: true
-relativePath: pics/
-ext: png
-```
-
-In layer mode the layer name is taken as the alt text, and the file name will be derived 
+The {choppy} layer comp also supports the following variables:
+- **outputFilePath** (string)  
+If set the string result will be saved to the specified file path, relative to the base path.
+- **outputTagStart**, **outputTagEnd** (string)
+When |outputFilePath| is true, the result string will be inserted between
+these tags if found in the output file. 
+<!--
+- **outputLayers** (boolean)  
+Experimental. If set to true then all layers associated with the {choppy} layercomp will 
+be outputted individually without creating layer comps for each. Any other layer comps are ignored.
+It's recommended to define global |relativePath| and |ext| as well with this setting. 
+The layer name is taken as the alt text, and the file name will be derived 
 from this data.
+-->
 
-###Output file path###
-
-A special variable called |outputFilePath| is available to the {choppy} layer comp. If 
-set the string result will be saved to the specified file path, relative to the base path.
-
-Any existing contents will be deleted.
-
-Base config file
-----------------
+###Base config file###
 
 Optionally place a file called '.choppy' in the same dir as your PSDs to direct to the base
 url for all. 
@@ -137,7 +135,7 @@ This is better than defining basePath in the PSD documents as if the source dir 
 moved the basePath will need to be updated in each PSD. This way it only needs to be 
 updated in the one place.
 
-Any other layer comp props can be defined here, though is not recommended.
+Any other layer comp props can be defined here, though is not usually necessary.
 
 ###Overriding###
 
@@ -168,6 +166,10 @@ The base filename of the image without extension.
 Alt tag.
 - ext  
 File extension without a preceeding ".".
+- index
+The layer comp index.
+- x & y
+The position of the pic relative to the containing doc, useful for for `cropToBounds` output. 
 - Any other unreserved vars set anywhere in the config chain.
 
 ###Format###
@@ -175,7 +177,7 @@ File extension without a preceeding ".".
 ```
 <img src="%src%" width="%width%" >
 ```
- 
+
 ###File parts###
 - mytemplate.txt  
 Required. The main template, used for each image outputted, where mytemplate is the 
@@ -183,7 +185,32 @@ name of the template.
 - mytemplate.header.txt  
 Optional. Will be added to the top of the output text. Suitable for instructions, global
 styles etc. Does not swap out variables.
-- mytemplate.footer.txt  
+- mytemplate.footer.txt   
 Optional. Will be added to the bottom of the output text. Does not swap out variables.
 - mytemplate.inter.txt  
 Optional. Will be added between items. Does not swap out variables.
+
+Command line
+------------
+
+Add the arg `dry` to run the choppy script in dry-run mode without outputting any images:
+```bash
+$ choppy dry
+```
+Template and text output will still perform.
+
+Add the arg `sel` to output the selected layer comp/s only
+```bash
+$ choppy sel
+```
+Template and text output will still perform.
+
+
+## Release History
+- v1.0.3 – Added template fields |x| and |y|
+- v1.0.4 – Injecting into output file tags
+- v1.0.5 - Dry run mode
+- v1.0.6 - Export gifs with matte and color options
+- v1.0.7 - Image optimisation added (for Mac)
+- v1.0.8 - Sel command line arg to output selected comps only, multiple layer bounds bugfix
+- v1.1.0 - Dependency fix
