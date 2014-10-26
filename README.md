@@ -214,3 +214,5 @@ Template and text output will still perform.
 - v1.0.7 - Image optimisation added (for Mac)
 - v1.0.8 - Sel command line arg to output selected comps only, multiple layer bounds bugfix
 - v1.1.0 - Dependency fix
+- v1.1.1 - Width result bugfix
+- v1.1.2 - More descriptive error messages

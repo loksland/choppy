@@ -63,8 +63,14 @@ var Choppy = function() {
   		}
   		
 		}).on('end', function() {
-		
-			var responseData = JSON.parse(responseBuffer);
+			
+			var responseData;
+			try {
+				responseData = JSON.parse(responseBuffer);
+			} catch (e) {
+				console.log(responseBuffer.toString());
+				return;
+			}
 			
 			console.log(responseData.outputData);
 			console.log('\n\n' + responseData.outputString + '\n\n');
@@ -424,11 +430,11 @@ function processJSX(stream, props){
 		}
 		outputData[p].outputBounds = outputBounds;
 	
-		outputData[p].x = outputBounds[0].value;
-		outputData[p].y = outputBounds[1].value;
-	
-		outputData[p].width = String(outputBounds[2].value-outputBounds[0].value); 
-		outputData[p].height = String(outputBounds[3].value-outputBounds[1].value);
+		outputData[p].x = parseInt(outputBounds[0], 10);
+		outputData[p].y = parseInt(outputBounds[1], 10);
+		
+		outputData[p].width = String(parseInt(outputBounds[2],10)-parseInt(outputBounds[0],10)); 
+		outputData[p].height = String(parseInt(outputBounds[3],10)-parseInt(outputBounds[1],10));
 		
 		if (!dryRun && (!outputSelected || outputData[p].selected)){
 	
