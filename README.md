@@ -209,6 +209,5 @@ Template and text output will still perform.
 - v1.1.1 - Width result bugfix
 - v1.1.2 - More descriptive error messages
 - v1.1.3 - Fix crop bounds to within doc
-- v1.2.0 - Major update with support for cropping layers nested in sets and masks. 
-					 Visible bounds calculation bugfix.
-					 bugfix.
+- v1.2.0 - Major update with support for cropping layers nested in sets and masks.  
+Visible bounds calculation bugfix.
