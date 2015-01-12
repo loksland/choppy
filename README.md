@@ -112,14 +112,6 @@ If set the string result will be saved to the specified file path, relative to t
 - **outputTagStart**, **outputTagEnd** (string)
 When |outputFilePath| is true, the result string will be inserted between
 these tags if found in the output file. 
-<!--
-- **outputLayers** (boolean)  
-Experimental. If set to true then all layers associated with the {choppy} layercomp will 
-be outputted individually without creating layer comps for each. Any other layer comps are ignored.
-It's recommended to define global |relativePath| and |ext| as well with this setting. 
-The layer name is taken as the alt text, and the file name will be derived 
-from this data.
--->
 
 ###Base config file###
 
@@ -216,3 +208,7 @@ Template and text output will still perform.
 - v1.1.0 - Dependency fix
 - v1.1.1 - Width result bugfix
 - v1.1.2 - More descriptive error messages
+- v1.1.3 - Fix crop bounds to within doc
+- v1.2.0 - Major update with support for cropping layers nested in sets and masks. 
+					 Visible bounds calculation bugfix.
+					 bugfix.

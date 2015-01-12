@@ -385,7 +385,7 @@ function processJSX(stream, props){
 					}
 					delProps.push(q);
 				}
-			}
+			} 
 		}	
 		for (var qq = 0; qq < delProps.length ; qq++){
 			delete outputData[p][delProps[qq]]
@@ -408,6 +408,7 @@ function processJSX(stream, props){
 		outputData[p].exportPath = psdContainingDir + outputData[p].basePath + outputData[p].relativePath + outputData[p].srcFileName;
 		
 		if (layerMode){
+			// |!| Not supported / documented
 			// Apply layer
 			configData.layerCompRef.apply();
 			for(var i = 0 ; i < doc.layers.length; i++){
@@ -423,7 +424,9 @@ function processJSX(stream, props){
 		}
 	
 		var outputBounds;
-		if (outputData[p].cropToBounds){
+		if (outputData[p].cropToBounds){	
+			// Only flatten if cropping
+			flattenTopLevelLayersThatAreVisible(doc);
 			outputBounds = getVisibleBounds(doc);
 		} else {
 			outputBounds = copyBounds(psdBounds);
@@ -646,7 +649,7 @@ function processJSX(stream, props){
 
 	function areBoundsEqual(boundsA, boundsB){
 		for(var i = 0; i < 4; i++){
-			if (boundsA[i].value != boundsB[i].value){
+			if (boundsA[i] != boundsB[i]){
 				return false;
 			}
 		}
@@ -663,32 +666,54 @@ function processJSX(stream, props){
 		var docBounds = new Array(0,0,doc.width.value,doc.height.value);
 		var cropBounds = copyBounds(docBounds);
 		var anyBoundsFound = false;
+		
 		for(var i = 0 ; i < doc.layers.length; i++){
+			
 			var layer = doc.layers[i];
-			if (layer.visible){						
+			
+			if (layer.visible && (layer.bounds[0].value != 0 || layer.bounds[1].value != 0 || layer.bounds[2].value != 0 || layer.bounds[3].value != 0)){			
+				
 				if (!anyBoundsFound){
-					cropBounds = copyBounds(layer.bounds);
+					cropBounds = copyBounds([layer.bounds[0].value, layer.bounds[1].value, layer.bounds[2].value, layer.bounds[3].value]);
 					anyBoundsFound = true; 
 				} else {
-					if (layer.bounds[tlXi].value < cropBounds[tlXi].value){
-						cropBounds[tlXi] = layer.bounds[tlXi];
+					if (layer.bounds[tlXi].value < cropBounds[tlXi]){
+						cropBounds[tlXi] = layer.bounds[tlXi].value;						
 					}
-					if (layer.bounds[tlYi].value < cropBounds[tlYi].value){
-						cropBounds[tlYi] = layer.bounds[tlYi];
+					if (layer.bounds[tlYi].value < cropBounds[tlYi]){
+						cropBounds[tlYi] = layer.bounds[tlYi].value;
 					}
-					if (layer.bounds[brXi].value > cropBounds[brXi].value){
-						cropBounds[brXi] = layer.bounds[brXi];
+					if (layer.bounds[brXi].value > cropBounds[brXi]){
+						cropBounds[brXi] = Math.min(doc.width.value,layer.bounds[brXi].value);
 					}							
-					if (layer.bounds[brYi].value > cropBounds[brYi].value){
-						cropBounds[brYi] = layer.bounds[brYi];
+					if (layer.bounds[brYi].value > cropBounds[brYi]){
+						cropBounds[brYi] = layer.bounds[brYi].value;
 					}
 					if (areBoundsEqual(cropBounds, docBounds)){					  
 						break;
 					}
 				}
 			}
-		}		
-		return cropBounds;		
+		}
+		
+		if (cropBounds[tlXi] < 0){
+			cropBounds[tlXi] = 0;
+		}
+		
+		if (cropBounds[tlYi] < 0){
+			cropBounds[tlYi] = 0;
+		}
+		
+		if (cropBounds[brXi] > doc.width.value){
+			cropBounds[brXi] = doc.width.value;
+		}
+		
+		if (cropBounds[brYi] > doc.height.value){
+			cropBounds[brYi] = doc.height.value;
+		}
+		
+		return cropBounds;
+		
 	}
 	
 	function applyVarObjToTemplateString(obj,str, pre, post){		
@@ -698,7 +723,28 @@ function processJSX(stream, props){
 		}
 		return str;
 	}
-	
+
+	function rasterizeVectorMask() {
+		try{ 
+			var id488 = stringIDToTypeID( "rasterizeLayer" );
+			var desc44 = new ActionDescriptor();
+			var id489 = charIDToTypeID( "null" );
+				var ref29 = new ActionReference();
+				var id490 = charIDToTypeID( "Lyr " );
+				var id491 = charIDToTypeID( "Ordn" );
+				var id492 = charIDToTypeID( "Trgt" );
+				ref29.putEnumerated( id490, id491, id492 );
+			desc44.putReference( id489, ref29 );
+			var id493 = charIDToTypeID( "What" );
+			var id494 = stringIDToTypeID( "rasterizeItem" );
+			var id495 = stringIDToTypeID( "vectorMask" );
+			desc44.putEnumerated( id493, id494, id495 );
+			executeAction( id488, desc44, DialogModes.NO );
+		}catch(e) {
+			; // do nothing
+		}
+	}
+
 	function takeSnapshot(){
 		var id686 = charIDToTypeID( 'Mk  ' );
 		var desc153 = new ActionDescriptor();
@@ -783,6 +829,122 @@ function processJSX(stream, props){
 		}
 		return obj;
 	}
+	
+	// Flatten
+	// -------
+	
+	function flattenTopLevelLayersThatAreVisible(doc){
+		
+		for (var i = 0 ; i < doc.layers.length; i++){
+				var layer = doc.layers[i];
+				if (layer.visible){
+					doc.activeLayer = layer;
+					if (layer.typename === 'LayerSet' ||
+							activeLayerHasLayerMask() ||
+							activeLayerHasVectorMask() ||
+							activeLayerHasFilterMask() ||
+							activeLayerHasStyle()){						
+							createSmartObject(doc, layer);
+					}
+				}
+			}
+	}
+	
+	// create smartobject from specified layer (default is active layer)
+	function createSmartObject(doc, layer)
+	{
+		 
+		 var layer = layer != undefined ? layer : doc.activeLayer;
+	 
+		 if(doc.activeLayer != layer) doc.activeLayer = layer;
+	 
+		 try
+		 {
+				var idnewPlacedLayer = stringIDToTypeID( "newPlacedLayer" );
+				executeAction( idnewPlacedLayer, undefined, DialogModes.NO );
+				return doc.activeLayer;
+		 }
+		 catch(e)
+		 {
+				return undefined;
+		 }
+	}
+	
+	function activeLayerHasLayerMask() {
+		// Source: https://github.com/picwellwisher12pk/Presets/blob/master/Scripts/Flatten%20All%20Masks.jsx
+		var hasLayerMask = false;
+		try {
+			var ref = new ActionReference();
+			var keyUserMaskEnabled = app.charIDToTypeID( 'UsrM' );
+			ref.putProperty( app.charIDToTypeID( 'Prpr' ), keyUserMaskEnabled );
+			ref.putEnumerated( app.charIDToTypeID( 'Lyr ' ), app.charIDToTypeID( 'Ordn' ), app.charIDToTypeID( 'Trgt' ) );
+			var desc = executeActionGet( ref );
+			if ( desc.hasKey( keyUserMaskEnabled ) ) {
+				hasLayerMask = true;
+			}
+		}catch(e) {
+			hasLayerMask = false;
+		}
+		return hasLayerMask;
+	}
+	
+	function activeLayerHasVectorMask() {
+		// Source: https://github.com/picwellwisher12pk/Presets/blob/master/Scripts/Flatten%20All%20Masks.jsx
+		var hasVectorMask = false;
+		try {
+			var ref = new ActionReference();
+			var keyVectorMaskEnabled = app.stringIDToTypeID( 'vectorMask' );
+			var keyKind = app.charIDToTypeID( 'Knd ' );
+			ref.putEnumerated( app.charIDToTypeID( 'Path' ), app.charIDToTypeID( 'Ordn' ), keyVectorMaskEnabled );
+			var desc = executeActionGet( ref );
+			if ( desc.hasKey( keyKind ) ) {
+				var kindValue = desc.getEnumerationValue( keyKind );
+				if (kindValue == keyVectorMaskEnabled) {
+					hasVectorMask = true;
+				}
+			}
+		}catch(e) {
+			hasVectorMask = false;
+		}
+		return hasVectorMask;
+	}
+	
+	function activeLayerHasFilterMask() {
+		// Source: https://github.com/picwellwisher12pk/Presets/blob/master/Scripts/Flatten%20All%20Masks.jsx
+		var hasFilterMask = false;
+		try {
+			var ref = new ActionReference();
+			var keyFilterMask = app.stringIDToTypeID("hasFilterMask");
+			ref.putProperty( app.charIDToTypeID( 'Prpr' ), keyFilterMask);
+			ref.putEnumerated( app.charIDToTypeID( 'Lyr ' ), app.charIDToTypeID( 'Ordn' ), app.charIDToTypeID( 'Trgt' ) );
+			var desc = executeActionGet( ref );
+			if ( desc.hasKey( keyFilterMask ) && desc.getBoolean( keyFilterMask )) {
+				hasFilterMask = true;
+			}
+		}catch(e) {
+			hasFilterMask = false;
+		}
+		return hasFilterMask;
+	}
+	
+	function activeLayerHasStyle() {
+		// Source: https://github.com/LeZuse/photoshop-scripts/blob/master/default/Flatten%20All%20Layer%20Effects.jsx
+		var hasLayerStyle = false;
+		try {
+			var ref = new ActionReference();
+			var keyLayerEffects = app.charIDToTypeID( 'Lefx' );
+			ref.putProperty( app.charIDToTypeID( 'Prpr' ), keyLayerEffects );
+			ref.putEnumerated( app.charIDToTypeID( 'Lyr ' ), app.charIDToTypeID( 'Ordn' ), app.charIDToTypeID( 'Trgt' ) );
+			var desc = executeActionGet( ref );
+			if ( desc.hasKey( keyLayerEffects ) ) {
+				hasLayerStyle = true;
+			}
+		}catch(e) {
+			hasLayerStyle = false;
+		}
+		return hasLayerStyle;
+	}
+	
 	/* jshint ignore:end */
 }
 
