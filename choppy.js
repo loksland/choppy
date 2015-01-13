@@ -72,7 +72,7 @@ var Choppy = function() {
 				return;
 			}
 			
-			console.log(responseData.outputData);
+			console.log(JSON.stringify(responseData.outputData, null, 2));
 			console.log('\n\n' + responseData.outputString + '\n\n');
 			
 			if (responseData.outputFilePath && responseData.outputFilePath.length > 0){
@@ -226,15 +226,16 @@ function processJSX(stream, props){
 	var outputSelected = props.outputSelected;
 	
 	// The default image prop fallbacks.
-	var PROP_DEFAULTS = {alt: '', cropToBounds: false, template: 'img', ext: 'jpg', quality: 80, flipX: false, flipY: false, relativePath: './', basePath: './', matte:null, colors:256, optimize:false};
+	var PROP_DEFAULTS = {alt: '', cropToBounds: false, template: 'img', ext: 'jpg', quality: 80, flipX: false, flipY: false, relativePath: './', basePath: './', matte:null, colors:256, optimize:false, scale:1, sizeFileHandle:'', sizeIndex:-1, sizes:null};
 	var BOOL_PROPS = ['cropToBounds', 'flipX', 'flipY', 'optimize'];
-	var NUM_PROPS = ['quality'];
+	var NUM_PROPS = ['quality','scale'];
 	// These will have a trailing slash added if needed.
 	var DIR_PROPS = ['relativePath', 'basePath'];
 	// These will be set to config data if not set.
 	var CONFIG_PROP_DEFAULTS = baseConfigData;
 	var VALID_OUTPUT_EXTS = ['jpg', 'png', 'gif'];
 	var CONFIG_LAYERCOMP_NAME = '{choppy}';
+	var SIZE_FILEHANDLE_PLACEHOLDER = '{s}';
 	var TEMPLATE_VAR_PRE = '%';
 	var TEMPLATE_VAR_POST = '%';
 	
@@ -279,11 +280,12 @@ function processJSX(stream, props){
 							varVal = true;
 						}
 					}	else if (NUM_PROPS.indexOf(varName) >= 0){
-						var tmpVarVal = Number(varVal);
+						var tmpVarVal = Number(eval(varVal));
 						if (!isNaN(tmpVarVal)){
 							varVal = tmpVarVal;
 						}
 					}
+					
 					compData[varName] = varVal;
 					totalProps++;
 				}
@@ -316,6 +318,7 @@ function processJSX(stream, props){
 		if (layerComp.name === CONFIG_LAYERCOMP_NAME){
 			delete compData['base'];
 			configData = compData;
+			
 		} else {
 		
 			compData.selected = layerComp.selected;
@@ -331,30 +334,6 @@ function processJSX(stream, props){
 	
 	takeSnapshot();
 	
-	var layerMode = false;
-	if (configData && configData.outputLayers){
-		// Layer mode - loop through layers applied with {choppy} layer comp and 
-		// add their name as |base| to output data.
-		layerMode = true;
-		var outputData = [];
-		// Apply layer comp
-		configData.layerCompRef.apply();
-		
-		for(var i = 0 ; i < doc.layers.length; i++){
-			
-			var layer = doc.layers[i];
-		
-			if (layer.visible){			
-				var compData = {};			
-				compData.base = layer.name;
-				compData.alt = layer.name;
-				compData.layerRef = layer;
-				outputData.push(compData);
-				layer.visible = false;
-			}
-		}
-	}
-	
 	// Extend config data
 	if (configData === null){
 		configData = extendObjWithDefaults({}, CONFIG_PROP_DEFAULTS);
@@ -367,13 +346,121 @@ function processJSX(stream, props){
 	var output = {};
 	var templatePartsAdded = {};
 	
-	for (var p = 0; p < outputData.length; p++){
+	var p;
+	for (p = 0; p < outputData.length; p++){
 		
 		outputData[p] = extendObjWithDefaults(outputData[p], configData);
 		// Enforce own "!" props.
 		outputData[p] = extendObjWithDefaults(outputData[p], outputData[p]);
-		outputData[p].index = p;
+		
+		// Look for multiple sizes and create new virtual layerComps for these
+		if (outputData[p].sizes) {
+			
+			// Look for size definitions
+			var sizeLookup = {};
+			var ppp;
+			for (ppp in outputData[p]){		
+				var pppOrig = ppp;		
+				ppp = ppp.toLowerCase();
+				if (ppp.length > 7 && ppp.substr(0,7) === 'sizedef'){
+					var sizeKey = ppp.substr(7);
+					sizeLookup[sizeKey] = outputData[p][pppOrig];					
+				}
+			}
+			
+			// Look for sizeDefs that reference other size defs
+			var sizeDefsDefined = {};
+			var iii = 0;
+			var anyUndef = true;
+			// Recurse until all defined (limit 10)
+			if (iii < 10 && anyUndef){
+				for (ppp in sizeLookup){
+					if (!sizeDefsDefined[ppp]){
+						anyUndef = true;
+						var arrSizesInDef = sizeLookup[ppp].split(',');			
+						var arrAltered = false;	
+						var totUndefProps = 0;
+						for (var ii = 0; ii < arrSizesInDef.length; ii++){
+							if (arrSizesInDef[ii].split(':').length === 1){
+								totUndefProps++;
+								var lookupDef = String(arrSizesInDef[ii]).toLowerCase();
+								if (sizeLookup[lookupDef] && sizeDefsDefined[lookupDef]){
+									arrSizesInDef[ii] = sizeLookup[lookupDef];
+									arrAltered = true;
+								} else {
+									break;
+								}
+							}
+						}				
+						if (totUndefProps === 0 || arrAltered){
+							sizeLookup[ppp] = arrSizesInDef.join(',');
+							sizeDefsDefined[ppp] = true;
+						}
+					}
+				}
+				iii++;	
+			}
+			
+			var tmpVarValArr = String(outputData[p].sizes).split(',');
+			outputData[p].sizes = [];
+			for (var pp = 0; pp < tmpVarValArr.length; pp++){						
+				var strObj = tmpVarValArr[pp];
+				if (strObj.split(':').length === 1){
+					// Inject size def
+					var sizeDef = String(strObj).toLowerCase();
+					if (sizeLookup[sizeDef]){						
+						var sizePushArr = sizeLookup[sizeDef].split(',');						
+						for (var jj = 0; jj < sizePushArr.length; jj++){
+							strObj = sizePushArr[jj];
+							outputData[p].sizes.push({fileHandle:strObj.split(':')[0], scale: Number(eval(strObj.split(':')[1])), def:sizeDef});
+						}						
+					} else {
+						throw new Error('Size definition "'+ppp+'" not found');
+					}					
+				} else {
+					outputData[p].sizes.push({fileHandle:strObj.split(':')[0], scale: Number(eval(strObj.split(':')[1]))});
+				}
+			}
+			
+			if (outputData[p].sizes.length > 0){
+			
+				// Save the layer comp as the ref will not survive duplicating
+				var layerCompRef = outputData[p].layerCompRef;
+				delete outputData[p].layerCompRef;
+		
+				for (var s = 0; s < outputData[p].sizes.length; s++){
+			 
+					if (!outputData[p].sizes[s]['scale']){
+						throw new Error('Invalid size scale ['+s+']');
+					}
+			
+					var dataObj;
+					if (s === 0){
+						dataObj = outputData[p];
+					} else {
+						dataObj = dupeObj(outputData[p]);				
+					}
+			
+					dataObj.layerCompRef = layerCompRef;			
+					dataObj.sizeIndex = s;
+					dataObj.scale = eval(outputData[p].sizes[s]['scale']);
+					dataObj.sizeFileHandle = outputData[p].sizes[s]['fileHandle'];
+			
+					if (s > 0){
+						outputData.splice(p + s,0,dataObj);
+					}
+				}
+		
+				if (outputData[p].sizes.length > 1){
+					p+=outputData[p].sizes.length-1;
+				}
+			}
+		}
+	}
 	
+	for (p = 0; p < outputData.length; p++){
+		
+		outputData[p].index = p;
 		// Remove ! props that have a double up.
 		// Remove ! for those that don't.
 		var delProps = [];
@@ -395,33 +482,44 @@ function processJSX(stream, props){
 		ensureDirPropsHaveTrailingSlash(outputData[p], DIR_PROPS, pathSep);
 	
 		// If no alt text then clean up base and use as a fallback.		
-		if (!outputData[p].alt || outputData[p].alt.length =0){
+		if (!outputData[p].alt || outputData[p].alt.length = 0){
 			outputData[p].alt = filenameBaseToAltText(outputData[p].base);
 		}
 	
-		// Disable uppercase file output.
 		outputData[p].base = cleanUpFileNameBase(outputData[p].base);
 	
 		// Now you have enough to get src
-		outputData[p].srcFileName = outputData[p].base + '.' + outputData[p].ext;
+		
+		// Inject file size handle into output
+		var fileNameSizeHandlePart = '';
+		if (outputData[p].sizeIndex >= 0){
+			
+			var foundFileHandlePlaceholder = false;
+			
+			if (outputData[p].base.split(SIZE_FILEHANDLE_PLACEHOLDER).length == 2){
+				foundFileHandlePlaceholder = true;
+				outputData[p].base = outputData[p].base.split(SIZE_FILEHANDLE_PLACEHOLDER).join(outputData[p].sizeFileHandle);
+			}
+			
+			if (outputData[p].relativePath.split(SIZE_FILEHANDLE_PLACEHOLDER).length == 2){
+				foundFileHandlePlaceholder = true;
+				outputData[p].relativePath = outputData[p].relativePath.split(SIZE_FILEHANDLE_PLACEHOLDER).join(outputData[p].sizeFileHandle);
+			}
+			
+			if (!foundFileHandlePlaceholder){
+				fileNameSizeHandlePart = outputData[p].sizeFileHandle;
+			}
+		}		
+		outputData[p].base = outputData[p].base.split(SIZE_FILEHANDLE_PLACEHOLDER).join('');
+		outputData[p].relativePath = outputData[p].relativePath.split(SIZE_FILEHANDLE_PLACEHOLDER).join('');
+		
+		outputData[p].srcFileName = outputData[p].base + fileNameSizeHandlePart + '.' + outputData[p].ext;
 		outputData[p].src = outputData[p].relativePath + outputData[p].srcFileName;
 		outputData[p].exportPath = psdContainingDir + outputData[p].basePath + outputData[p].relativePath + outputData[p].srcFileName;
 		
-		if (layerMode){
-			// |!| Not supported / documented
-			// Apply layer
-			configData.layerCompRef.apply();
-			for(var i = 0 ; i < doc.layers.length; i++){
-				var layer = doc.layers[i];
-				if (layer.visible && layer != outputData[p].layerRef){			
-					layer.visible = false;
-				}
-			}
-		} else {		
-			// Apply layer comp
-			var layerComp = outputData[p].layerCompRef;
-			layerComp.apply();
-		}
+		// Apply layer comp
+		var layerComp = outputData[p].layerCompRef;
+		layerComp.apply();
 	
 		var outputBounds;
 		if (outputData[p].cropToBounds){	
@@ -445,7 +543,7 @@ function processJSX(stream, props){
 			if (!areBoundsEqual(psdBounds, outputData[p].outputBounds)){
 				revertRequired = true;
 				doc.crop(outputData[p].outputBounds);
-			} 
+			}
 	
 			if (outputData[p].flipX){
 				revertRequired = true;
@@ -455,6 +553,14 @@ function processJSX(stream, props){
 			if (outputData[p].flipY){
 				revertRequired = true;
 				doc.flipCanvas(Direction.VERTICAL);
+			}
+			
+			if (outputData[p].scale != 1){
+				revertRequired = true;
+				doc.resizeImage(UnitValue(doc.width.value * outputData[p].scale,"px"),null,null,ResampleMethod.BICUBIC);
+				// Update dims
+				outputData[p].width = String(doc.width.value); 
+				outputData[p].height = String(doc.height.value); 
 			}
 		
 			// Ouput image
@@ -499,7 +605,17 @@ function processJSX(stream, props){
 				revertSnapshot(doc);
 			}
 			
-		} else if (outputSelected){
+		} else {
+			
+			if (outputData[p].scale != 1){
+				// Update dims
+				outputData[p].width = String(Math.round(Number(outputData[p].width) * outputData[p].scale)); 
+				outputData[p].height = String(Math.round(Number(outputData[p].height) * outputData[p].scale)); 
+			}
+		
+		}
+		
+		if (outputSelected){
 			// Don't optimize if didn't output
 			outputData[p].optimize = false;
 		}
@@ -564,7 +680,7 @@ function processJSX(stream, props){
 	}
 	
 	// Write response back to node
-	var responseData = {outputData: cleanupOutputDataForOutput(outputData,['layerCompRef', 'layerRef']),
+	var responseData = {outputData: cleanupOutputDataForOutput(outputData,['layerCompRef']),
 											outputString: outputString,
 											outputFilePath: outputFilePath,
 											outputTags: outputTags}
@@ -576,6 +692,10 @@ function processJSX(stream, props){
 	// JSX functions
 	// -------------
 	
+	function dupeObj(obj){
+		return JSON.parse(JSON.stringify(obj));
+	}
+	
 	function hexToRGB(hex){
 		var result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
     return result ? {
@@ -586,8 +706,9 @@ function processJSX(stream, props){
 	}
 	
 	function cleanUpFileNameBase(base){
-	
-		base = base.toLowerCase();
+		
+		//base = base.toLowerCase();
+		// Remove spaces
 		base = base.split(' ').join('-');
 		return base;
 		
@@ -599,7 +720,7 @@ function processJSX(stream, props){
 			var obj = outputData[i];
 			for (var p in obj){
 				if (hidePropsArr.indexOf(p) >= 0){
-					outputData[i][p] = '(...)';
+					outputData[i][p] = '...';
 				}
 			}
 		}	

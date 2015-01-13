@@ -95,6 +95,24 @@ Image output quality for jpgs only. 0-100. Default is 80.
 Set the matte color for gif as a hex string. Eg. #FF3300. Hash optional, case insensitive.
 - **colors** (integer)
 Set the number of colors for a gif. 1-256.
+- **scale**
+Scale the output. Default 1.0. Eg 0.5 will output 50% size.  
+Optionally enter simple expressions to be evaluated. Eg. 2/3
+- **sizes**
+Output multiple sizes of the same image.  
+Format: filename:scale,filename:scale
+Eg. '@2x:1,sd:.5' will output 2 files and inject '@2x' and 'sd' into the filename before
+the extension.  
+Optionally put {s} in your file name / path to customize where the file size is placed in the output.  
+If size set then any scale props will be overwritten and ignored.
+- **sizeDef%Name%**  
+Optionally define individual sizes or groups of sizes by shorthand name. These can reference
+other sizes. Eg:  
+sizeDefSD: sd:1/2  
+sizeDefRETINA: @2x:1,SD   
+sizes: RETINA  
+Although this example uses uppercase the shorthand name is case insensitive.  
+Size definitions can be placed in the .choppy config file for use across multiple files.
 - **optimize** (boolean)
 Utilizes the amazing [ImageOptim-CLI](https://github.com/JamieMason/ImageOptim-CLI) to compress the outputted image. Mac only. 
 Requires free software [ImageAlpha](http://pngmini.com/) and [ImageOptim](http://imageoptim.com/) installed. 
@@ -211,3 +229,5 @@ Template and text output will still perform.
 - v1.1.3 - Fix crop bounds to within doc
 - v1.2.0 - Major update with support for cropping layers nested in sets and masks.  
 Visible bounds calculation bugfix.
+- v1.2.2 - Scale outputting
+- v1.3.0 - Multiple size output support
