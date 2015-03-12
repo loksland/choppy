@@ -1,6 +1,6 @@
 {
   "name": "choppy",
-  "version": "1.3.0",
+  "version": "1.4.3",
   "description": "It slices! It dices!",
   "main": "choppy.js",
   "scripts": {
@@ -30,13 +30,13 @@
   },
   "devDependencies": {
     "grunt": "^0.4.5",
-    "grunt-contrib-jshint": "^0.10.0",
-    "grunt-contrib-watch": "^0.6.1"   
+    "grunt-contrib-jshint": "^0.11.0",
+    "grunt-contrib-watch": "^0.6.1"
   },
   "dependencies": {
-    "photoshop": "^0.5.1",
-    "imageoptim-cli": "^1.7.11",
-    "minimist": "^1.1.0"
+    "imageoptim-cli": "^1.11.6",
+    "minimist": "^1.1.1",
+    "photoshop": "^0.5.2"
   },
   "engines": {
     "node": "0.10.x"

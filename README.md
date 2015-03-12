@@ -62,7 +62,7 @@ alt: A pic I took
 cropToBounds: true
 ```
 
-###Image layer comp###
+### Image layer comp ###
 
 Each output image is represented by a layer comp named as the output filepath relative
 to the global |basePath|. Eg. "img/mypic.jpg" 
@@ -70,42 +70,42 @@ to the global |basePath|. Eg. "img/mypic.jpg"
 The extension, if set, will define the file format of the outputted file.
 
 Variables:
-- **alt** (string)
+- **alt** (string)  
 The alternate text to be outputted for the image. If the comment area hasn't got variables 
 then the text will be assumed as alt text.
-- **cropToBounds** (boolean)
+- **cropToBounds** (boolean)  
 If true then the output image dimensions will be informed by the bounds of the layer comp 
 rather than the PSD dimensions.
-- **template** (string)
+- **template** (string)  
 Either custom template string or the slug of a template file. Default is "img".
-- **ext** (string) 
+- **ext** (string)  
 Optional extension to be applied. This will only apply if there is no extension in the 
 layer comp name. Valid entries are jpg, gif or png.
-- **flipX**, **flipY** (boolean)
+- **flipX**, **flipY** (boolean)  
 Flip the output horizontally / vertically. Default is false.
-- **relativePath** (string)
+- **relativePath** (string)  
 Optional output path relative to |basePath|. This will only apply if there is no path
 defined in the image layer comp itself.
--- **basePath**  (string)
+-- **basePath**  (string)  
 The relative path from the PSD to the output directory. 
 It's recommended to use .choppy instead for defining this variable.
-- **quality** (integer)
+- **quality** (integer)  
 Image output quality for jpgs only. 0-100. Default is 80.
-- **matte** (string)
+- **matte** (string)  
 Set the matte color for gif as a hex string. Eg. #FF3300. Hash optional, case insensitive.
-- **colors** (integer)
+- **colors** (integer)  
 Set the number of colors for a gif. 1-256.
-- **scale**
+- **scale**  (float)
 Scale the output. Default 1.0. Eg 0.5 will output 50% size.  
 Optionally enter simple expressions to be evaluated. Eg. 2/3
-- **sizes**
+- **sizes** (string)  
 Output multiple sizes of the same image.  
 Format: filename:scale,filename:scale
 Eg. '@2x:1,sd:.5' will output 2 files and inject '@2x' and 'sd' into the filename before
 the extension.  
 Optionally put {s} in your file name / path to customize where the file size is placed in the output.  
 If size set then any scale props will be overwritten and ignored.
-- **sizeDef%Name%**  
+- **sizeDef%Name%** (string)  
 Optionally define individual sizes or groups of sizes by shorthand name. These can reference
 other sizes. Eg:  
 sizeDefSD: sd:1/2  
@@ -113,11 +113,25 @@ sizeDefRETINA: @2x:1,SD
 sizes: RETINA  
 Although this example uses uppercase the shorthand name is case insensitive.  
 Size definitions can be placed in the .choppy config file for use across multiple files.
-- **optimize** (boolean)
+- **optimize** (boolean)  
 Utilizes the amazing [ImageOptim-CLI](https://github.com/JamieMason/ImageOptim-CLI) to compress the outputted image. Mac only. 
 Requires free software [ImageAlpha](http://pngmini.com/) and [ImageOptim](http://imageoptim.com/) installed. 
+- **reg** (string)  
+Override the reg point for the image. Default is top left. Input values are 2 characters: 
+the first represents vertical space, the second horizontal. Eg. "TL" = top left, 
+"BR" = bottom right, "C" = centered both dimensions, "CR" = centered vert + right aligned,
+"TC" = top aligned + centered horizontally
+- **outputValueFactor** (float)  
+Default 1. All values sent to output templates will be multiplied by this factor. It 
+doesn't affect the size of images exported, just the values written for |x|, |y|, |regX|, 
+|regY|, |width| and |height| in the template output. 
 
-###{choppy} Layer comp###
+### {reg} Layer ###
+
+If a layer named {reg} is visible in a layer comp it will be hidden and used as a marker
+for the registration point. Will override **reg** value if present.
+
+### {choppy} Layer comp ###
 
 Optionally define the default settings for all output images in the current PSD. 
 
@@ -126,12 +140,13 @@ layer comps.
 
 The {choppy} layer comp also supports the following variables:
 - **outputFilePath** (string)  
-If set the string result will be saved to the specified file path, relative to the base path.
+If set the string result will be saved to the specified file path, relative to the base 
+path. Variables can be included in this string and they will be swapped out.
 - **outputTagStart**, **outputTagEnd** (string)
 When |outputFilePath| is true, the result string will be inserted between
 these tags if found in the output file. 
 
-###Base config file###
+### Base config file ###
 
 Optionally place a file called '.choppy' in the same dir as your PSDs to direct to the base
 url for all. 
@@ -147,7 +162,7 @@ updated in the one place.
 
 Any other layer comp props can be defined here, though is not usually necessary.
 
-###Overriding###
+### Overriding ###
 
 A config var with an important "!" at start will override descendants and also prevent ancestors from
 overriding. Eg.
@@ -163,32 +178,43 @@ Templates
 - Default template is "img".
 - Templates can be of any extension.
 
-###Vars###
-- src  
+### Vars ###
+- **src**  
 The output image source path relative to config settings.
-- width
+- **width**  
 The output image width.
-- height
+- **height**  
 The output image height.
-- base  
+- **base**  
 The base filename of the image without extension.
-- alt  
+- **alt**  
 Alt tag.
-- ext  
+- **ext**  
 File extension without a preceeding ".".
-- index
+- **index**  
 The layer comp index.
-- x & y
-The position of the pic relative to the containing doc, useful for for `cropToBounds` output. 
+- **x + y**  
+The position of the pic relative to the containing doc, useful for for `cropToBounds` 
+output. Will be top left by default, unless registration point is defined, in which case 
+the reg point will be used instead. The output scale will be applied to this value.
+- **regX + regY**  
+The reg point relative to the top left of the pic bounds. Eg. If set to top left then will 
+be (0,0), if bottom right will be the same as (pic.width, pic.height). The output scale 
+will be applied to this value.
+- **regPercX + regPercY**  
+The relative reg point as a percentage value of the pic dimensions. Eg. (0,0) is top left,
+(1,1) is bottom right.
+- **psdBase**  
+The base filename of the current PSD doc.
 - Any other unreserved vars set anywhere in the config chain.
 
-###Format###
+### Format ###
 - %varname%
 ```
 <img src="%src%" width="%width%" >
 ```
 
-###File parts###
+### File parts ###
 - mytemplate.txt  
 Required. The main template, used for each image outputted, where mytemplate is the 
 name of the template.
@@ -215,19 +241,27 @@ $ choppy sel
 ```
 Template and text output will still perform.
 
+### Release History ###
 
-## Release History
-- v1.0.3 – Added template fields |x| and |y|
-- v1.0.4 – Injecting into output file tags
-- v1.0.5 - Dry run mode
-- v1.0.6 - Export gifs with matte and color options
-- v1.0.7 - Image optimisation added (for Mac)
-- v1.0.8 - Sel command line arg to output selected comps only, multiple layer bounds bugfix
-- v1.1.0 - Dependency fix
-- v1.1.1 - Width result bugfix
-- v1.1.2 - More descriptive error messages
-- v1.1.3 - Fix crop bounds to within doc
+- v1.4.3 - Fixed transform warning when reporting active psd
+- v1.3.4 - Additional var |psdBase|. Enabled var swap out for |outputFilePath| prop. Template
+header and footer has props swapped out with core config data.
+- v1.3.3 - Fixed dry run with scale bug. Applied scale to reg pt values. Addded 
+|outputValueFactor| prop.
+- v1.3.2 - Scale is applied to reg pts and x,y position
+- v1.3.2 - Reg point bugfix
+- v1.3.1 - Reg point support through {reg} layer and |reg| layer property
+- v1.3.0 - Multiple size output support
+- v1.2.2 - Scale outputting
 - v1.2.0 - Major update with support for cropping layers nested in sets and masks.  
 Visible bounds calculation bugfix.
-- v1.2.2 - Scale outputting
-- v1.3.0 - Multiple size output support
+- v1.1.3 - Fix crop bounds to within doc
+- v1.1.2 - More descriptive error messages
+- v1.1.1 - Width result bugfix
+- v1.1.0 - Dependency fix
+- v1.0.8 - Sel command line arg to output selected comps only, multiple layer bounds bugfix
+- v1.0.7 - Image optimisation added (for Mac)
+- v1.0.6 - Export gifs with matte and color options
+- v1.0.5 - Dry run mode
+- v1.0.4 – Injecting into output file tags
+- v1.0.3 – Added template fields |x| and |y|

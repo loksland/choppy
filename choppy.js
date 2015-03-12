@@ -32,7 +32,7 @@ var Choppy = function() {
 	
 	// Get the active doc.
 	photoshop.invoke(activeDocumentJSX, function(error, activeDocument){		
-	
+		
 	  var psdContainingDir = Choppy.ensureDirPathHasTrailingSlash(activeDocument.path, path.sep);
 	  var baseConfigData = {};
 	   
@@ -92,7 +92,7 @@ var Choppy = function() {
 				}
 				
 				fs.writeFileSync(psdContainingDir + responseData.outputFilePath, outputFileContents);
-				console.log('Wrote to ' + responseData.outputFilePath + '.\n');
+				console.log('Wrote to ' + responseData.outputFilePath + '\n');
 				
 				// Optimize using imageoptim-cli
 				
@@ -210,7 +210,9 @@ Choppy.ensureDirPathHasTrailingSlash = function(path, sep){
 
 function activeDocumentJSX(){
 	/* jshint ignore:start */
-  return app.activeDocument;
+	//console.log();
+	
+  return {path : app.activeDocument.path};
   /* jshint ignore:end */
 }
 
@@ -225,8 +227,17 @@ function processJSX(stream, props){
 	var dryRun = props.dryRun;
 	var outputSelected = props.outputSelected;
 	
+	//stream.writeln('debug:var tplData=' + JSON.stringify(tplData) +';');
+	//stream.writeln('debug:var pathSep=' + JSON.stringify(pathSep) +';');
+	//stream.writeln('debug:var baseConfigData=' + JSON.stringify(baseConfigData) +';');
+	//stream.writeln('debug:var TEMPLATE_PARTS=' + JSON.stringify(TEMPLATE_PARTS) +';');
+	//stream.writeln('debug:var dryRun=' + JSON.stringify(dryRun) +';');
+	//stream.writeln('debug:var outputSelected=' + JSON.stringify(outputSelected) +';');
+	
 	// The default image prop fallbacks.
-	var PROP_DEFAULTS = {alt: '', cropToBounds: false, template: 'img', ext: 'jpg', quality: 80, flipX: false, flipY: false, relativePath: './', basePath: './', matte:null, colors:256, optimize:false, scale:1, sizeFileHandle:'', sizeIndex:-1, sizes:null};
+	var PROP_DEFAULTS = {alt: '', cropToBounds: false, template: 'img', ext: 'jpg', quality: 80, flipX: false, flipY: false, relativePath: './', basePath: './', matte:null, colors:256, optimize:false, scale:1, sizeFileHandle:'', sizeIndex:-1, sizes:null, reg: 'TL', outputValueFactor: 1, regX:0, regY:0, regPercX:0, regPercY:0};
+	// Which props are affected by |outputValueFactor|
+	var OUTPUT_VALUE_FACTOR_PROPS = ['width','height','x','y','regX','regY']; 	
 	var BOOL_PROPS = ['cropToBounds', 'flipX', 'flipY', 'optimize'];
 	var NUM_PROPS = ['quality','scale'];
 	// These will have a trailing slash added if needed.
@@ -238,6 +249,7 @@ function processJSX(stream, props){
 	var SIZE_FILEHANDLE_PLACEHOLDER = '{s}';
 	var TEMPLATE_VAR_PRE = '%';
 	var TEMPLATE_VAR_POST = '%';
+	var REG_LAYER_NAME = '{reg}';
 	
 	// Get psd info
 	var doc = app.activeDocument;
@@ -246,6 +258,13 @@ function processJSX(stream, props){
 	var psdFullName = doc.fullName;
 	var psdBounds = new Array(0,0,doc.width.value,doc.height.value);
 	
+	// Assuming doc has an extension
+	
+	var psdNameParts = psdName.split('.');	
+	psdNameParts.splice(psdNameParts.length - 1, 1);
+	var psdBase = psdNameParts.join('.');
+	PROP_DEFAULTS['psdBase'] = psdBase;	
+
 	if (!doc){
 		throw new Error('No PSD document open.')
 	}
@@ -266,6 +285,7 @@ function processJSX(stream, props){
 				var chunk = arr[j];
 				var chunkArr = chunk.split(':');
 				if (chunkArr.length > 1){
+					
 					var varName = chunkArr[0].split(' ').join('');
 					chunkArr.splice(0,1);
 					var varVal = chunkArr.join(':');				
@@ -440,7 +460,7 @@ function processJSX(stream, props){
 					} else {
 						dataObj = dupeObj(outputData[p]);				
 					}
-			
+					
 					dataObj.layerCompRef = layerCompRef;			
 					dataObj.sizeIndex = s;
 					dataObj.scale = eval(outputData[p].sizes[s]['scale']);
@@ -457,7 +477,7 @@ function processJSX(stream, props){
 			}
 		}
 	}
-	
+
 	for (p = 0; p < outputData.length; p++){
 		
 		outputData[p].index = p;
@@ -466,7 +486,7 @@ function processJSX(stream, props){
 		var delProps = [];
 		for (var q in outputData[p]){
 			if (q.charAt(0) == "!"){
-				if (qNoEx = q.substr(1)){
+				if (qNoEx == q.substr(1)){ // Was single
 					if (!outputData[p][qNoEx]){
 						outputData[p][qNoEx] = outputData[p][q];
 					}
@@ -475,14 +495,14 @@ function processJSX(stream, props){
 			} 
 		}	
 		for (var qq = 0; qq < delProps.length ; qq++){
-			delete outputData[p][delProps[qq]]
+			delete outputData[p][delProps[qq]];
 		}
 	
 		// Make sure trailing slashes are present.
 		ensureDirPropsHaveTrailingSlash(outputData[p], DIR_PROPS, pathSep);
 	
 		// If no alt text then clean up base and use as a fallback.		
-		if (!outputData[p].alt || outputData[p].alt.length = 0){
+		if (!outputData[p].alt || outputData[p].alt.length == 0){
 			outputData[p].alt = filenameBaseToAltText(outputData[p].base);
 		}
 	
@@ -520,26 +540,59 @@ function processJSX(stream, props){
 		// Apply layer comp
 		var layerComp = outputData[p].layerCompRef;
 		layerComp.apply();
-	
+		
+		// Look for reg point layer, record position and hide
+		var regPt = null;
+		for (var r = 0 ; r < doc.layers.length; r++){
+			var lyr = doc.layers[r];
+			if (lyr.visible && lyr.name && lyr.name === REG_LAYER_NAME){				
+				lyr.visible = false;
+				regPt = getLayerCenterPoint(lyr);
+				outputData[p].reg = '(custom)';
+				break;
+			}
+		}	
+		
+		var revertRequired = false;
+		
 		var outputBounds;
 		if (outputData[p].cropToBounds){	
 			// Only flatten if cropping
 			flattenTopLevelLayersThatAreVisible(doc);
+			revertRequired = true; // A revert is required whether a dry-run or not
 			outputBounds = getVisibleBounds(doc);
 		} else {
 			outputBounds = copyBounds(psdBounds);
 		}
 		outputData[p].outputBounds = outputBounds;
-	
-		outputData[p].x = parseInt(outputBounds[0], 10);
-		outputData[p].y = parseInt(outputBounds[1], 10);
+		
+		// outputData[p].x = parseInt(outputBounds[0], 10);
+		// outputData[p].y = parseInt(outputBounds[1], 10);
+		
+		if (!regPt && outputData[p].reg !== '(custom)'){
+			// Interpret 'reg' data
+			regPt = getRegPtFromRegStringAndBounds(outputData[p].reg, outputData[p].outputBounds);
+		}
+		
+		if (!regPt){
+			regPt = {x: parseInt(outputBounds[0], 10), y: parseInt(outputBounds[1], 10)};
+		}
+		
+		// Apply reg point data
+		outputData[p].x = regPt.x;
+		outputData[p].y = regPt.y;
+		
+		outputData[p].regX = regPt.x - outputData[p].outputBounds[0];
+		outputData[p].regY = regPt.y - outputData[p].outputBounds[1];
+		
+		outputData[p].regPercX = (regPt.x - outputData[p].outputBounds[0]) / (outputData[p].outputBounds[2] - outputData[p].outputBounds[0]);
+		outputData[p].regPercY = (regPt.y - outputData[p].outputBounds[1]) / (outputData[p].outputBounds[3] - outputData[p].outputBounds[1])
 		
 		outputData[p].width = String(parseInt(outputBounds[2],10)-parseInt(outputBounds[0],10)); 
 		outputData[p].height = String(parseInt(outputBounds[3],10)-parseInt(outputBounds[1],10));
 		
 		if (!dryRun && (!outputSelected || outputData[p].selected)){
-	
-			var revertRequired = false;
+			
 			if (!areBoundsEqual(psdBounds, outputData[p].outputBounds)){
 				revertRequired = true;
 				doc.crop(outputData[p].outputBounds);
@@ -561,6 +614,12 @@ function processJSX(stream, props){
 				// Update dims
 				outputData[p].width = String(doc.width.value); 
 				outputData[p].height = String(doc.height.value); 
+				
+				outputData[p].x = outputData[p].x * outputData[p].scale;
+				outputData[p].y = outputData[p].y * outputData[p].scale;
+				
+				outputData[p].regX = outputData[p].regX * outputData[p].scale;
+				outputData[p].regY = outputData[p].regY * outputData[p].scale;
 			}
 		
 			// Ouput image
@@ -601,19 +660,27 @@ function processJSX(stream, props){
 	
 			doc.exportDocument(new File(outputData[p].exportPath), ExportType.SAVEFORWEB, exportOptions);
 	
-			if (revertRequired){
-				revertSnapshot(doc);
-			}
-			
 		} else {
 			
 			if (outputData[p].scale != 1){
+			
 				// Update dims
 				outputData[p].width = String(Math.round(Number(outputData[p].width) * outputData[p].scale)); 
 				outputData[p].height = String(Math.round(Number(outputData[p].height) * outputData[p].scale)); 
+				
+				outputData[p].x = outputData[p].x * outputData[p].scale;
+				outputData[p].y = outputData[p].y * outputData[p].scale;
+				
+				outputData[p].regX = outputData[p].regX * outputData[p].scale;
+				outputData[p].regY = outputData[p].regY * outputData[p].scale;
+				
 			}
-		
 		}
+		
+		if (revertRequired){
+			revertSnapshot(doc);
+		}
+		
 		
 		if (outputSelected){
 			// Don't optimize if didn't output
@@ -631,7 +698,7 @@ function processJSX(stream, props){
 					} 
 					templateFound = true;
 					if (part == 'main'){
-						var mainData = applyVarObjToTemplateString(outputData[p], tplData[outputData[p].template][part], TEMPLATE_VAR_PRE, TEMPLATE_VAR_POST);
+						var mainData = applyVarObjToTemplateString(outputData[p], tplData[outputData[p].template][part], TEMPLATE_VAR_PRE, TEMPLATE_VAR_POST, outputData[p].outputValueFactor, OUTPUT_VALUE_FACTOR_PROPS);
 						if (tplData[outputData[p].template]['inter'] !== undefined && p > 0){
 							mainData = tplData[outputData[p].template]['inter'] + mainData;
 						}
@@ -640,7 +707,11 @@ function processJSX(stream, props){
 						// Only output once
 						var templatePartID = outputData[p].template + ':' + part;
 						if (!templatePartsAdded[templatePartID]){
-							output[part].push(tplData[outputData[p].template][part]);	
+							var templateContent = tplData[outputData[p].template][part];
+							if (configData){
+								templateContent = applyVarObjToTemplateString(configData, templateContent, TEMPLATE_VAR_PRE, TEMPLATE_VAR_POST, 1, []);
+							}
+							output[part].push(templateContent);	
 							templatePartsAdded[templatePartID] = true;
 						}
 					}
@@ -652,9 +723,8 @@ function processJSX(stream, props){
 			if (output['main'] === undefined){
 				output['main'] = [];
 			}
-			output['main'].push(applyVarObjToTemplateString(outputData[p], outputData[p].template, TEMPLATE_VAR_PRE, TEMPLATE_VAR_POST));
+			output['main'].push(applyVarObjToTemplateString(outputData[p], outputData[p].template, TEMPLATE_VAR_PRE, TEMPLATE_VAR_POST, outputData[p].outputValueFactor, OUTPUT_VALUE_FACTOR_PROPS));
 		}
-		
 	}
 	
 	// Revert doc
@@ -673,7 +743,11 @@ function processJSX(stream, props){
 	var outputTags = {};
 	if (configData && configData.outputFilePath && configData.outputFilePath.length > 0){
 		configData.basePath = ensureDirPathHasTrailingSlash(configData.basePath, pathSep);
-		outputFilePath = configData.basePath + configData.outputFilePath;
+		
+		// You can inject config props into this path
+		var injectedOutputFilePath = applyVarObjToTemplateString(configData, configData.outputFilePath, TEMPLATE_VAR_PRE, TEMPLATE_VAR_POST, 1, []);
+		
+		outputFilePath = configData.basePath + injectedOutputFilePath; //configData.outputFilePath;
 		if (configData.outputTagStart && configData.outputTagEnd && configData.outputTagStart.length > 0 && configData.outputTagEnd.length > 0){
 			outputTags = {start:configData.outputTagStart, end:configData.outputTagEnd};
 		}
@@ -715,11 +789,12 @@ function processJSX(stream, props){
 	}
 	
 	function cleanupOutputDataForOutput(outputData, hidePropsArr){
-		
+	
+		var hidePropsLookup = '+++' + hidePropsArr.join('+++') + '+++';
 		for (var i = 0;i < outputData.length; i++){
 			var obj = outputData[i];
 			for (var p in obj){
-				if (hidePropsArr.indexOf(p) >= 0){
+				if (hidePropsLookup.split('+++' + p + '+++').length > 1){
 					outputData[i][p] = '...';
 				}
 			}
@@ -728,6 +803,8 @@ function processJSX(stream, props){
 		return outputData;
 	
 	}
+	
+	
 	
 	function filenameBaseToAltText(base){
 		
@@ -775,6 +852,66 @@ function processJSX(stream, props){
 			}
 		}
 		return true;
+	}
+	
+	function getLayerCenterPoint(layerRef){
+	
+		return {x : layerRef.bounds[0].value + (layerRef.bounds[2].value - layerRef.bounds[0].value)*0.5, y: layerRef.bounds[1].value + (layerRef.bounds[3].value - layerRef.bounds[1].value)*0.5};
+		
+	}
+	
+	function getRegPtFromRegStringAndBounds(regStr, bounds){
+		
+		// Get bounds
+		var x = bounds[0];
+		var y = bounds[1];
+		var width = bounds[2] - bounds[0];
+		var height = bounds[3] - bounds[1];
+		
+		// Interpret regStr
+		
+		// Default: top left
+		var hozP = 0;
+		var vertP = 0;
+		
+		regStr = regStr.toUpperCase();
+		regStr = regStr.split('M').join('C');
+		regStr = regStr.split('CC').join('C');
+		
+		if (regStr == 'C'){
+			hozP = vertP = 0.5;
+		} else {
+		
+			var remains = '';
+			var hozFound = false;
+			var vertFound = false;
+			var chars = ['L','R','T','B'];
+			for (var i = 0; i < chars.length; i++){
+				var c = chars[i];
+				if (regStr.split('L').length > 1){
+					hozP = 0;
+					hozFound = true;					
+				} else if (regStr.split('R').length > 1){
+					hozP = 1;
+					hozFound = true;
+				} else if (regStr.split('T').length > 1){
+					vertP = 0;
+					vertFound = true;
+				} else if (regStr.split('B').length > 1){
+					vertP = 1;
+					vertFound = true;
+				}
+			}
+			
+			if (hozFound && !vertFound && regStr.split('C').length > 1){
+				vertP = 0.5;
+			} else if (!hozFound && vertFound && regStr.split('C').length > 1){
+				hozP = 0.5;
+			}
+		}
+		
+		return {x: x + width * hozP, y: y + height * vertP};
+		
 	}
 	
 	function getVisibleBounds(doc){
@@ -837,10 +974,18 @@ function processJSX(stream, props){
 		
 	}
 	
-	function applyVarObjToTemplateString(obj,str, pre, post){		
+	function applyVarObjToTemplateString(obj,str, pre, post, outputValueFactor, OUTPUT_VALUE_FACTOR_PROPS){		
+		
 		str = String(str);
+		var outputValueFactorPropsLookup = '#' + OUTPUT_VALUE_FACTOR_PROPS.join('#') + '#';
 		for (var p in obj) {
-			str = str.split(pre+p+post).join(obj[p]);
+			var val = obj[p];
+			// Apply value factor to applicable props
+			if (outputValueFactorPropsLookup.split('#'+p+ '#').length === 2){
+				val = Number(val) * outputValueFactor;
+			}
+			
+			str = str.split(pre+p+post).join(val);
 		}
 		return str;
 	}
