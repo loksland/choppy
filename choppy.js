@@ -13,57 +13,174 @@ var Choppy = function() {
 	
 	// Get the template data from core	
 	this.templateFiles = [];
+	this.templateFilesCore = [];
 	var coreTemplateDirPath = __dirname + path.sep + this.TEMPLATE_DIR_NAME + path.sep;
-	Choppy.addFilePathsInDirToArray(coreTemplateDirPath, this.templateFiles);
+	Choppy.addFilePathsInDirToArray(coreTemplateDirPath, this.templateFilesCore);
 	
 	// Get arg
-	var dryRun = false;
-	var outputSelected = false;
+	this.dryRun = false;
+	this.outputSelected = false;
+	this.psdPaths = []; // User wants you to open doc if not already open
+	this.verbose = false;
+	this.flatten = false;
+	this.makecomps = false;
+	
 	var argv = require('minimist')(process.argv.slice(2));
+	
+	//console.log(JSON.stringify(argv, null, 2));
+	
 	for (var k = 0; k < argv._.length; k++){
 		if (String(argv._[k]).toLowerCase() === 'dry'){
-			dryRun = true;			
+			this.dryRun = true;			
 		} else if (String(argv._[k]).toLowerCase() === 'sel'){
-			outputSelected = true;
+			this.outputSelected = true;
+		} else if (String(argv._[k]).toLowerCase() === 'verbose'){
+			this.verbose = true;
+		} else if (String(argv._[k]).toLowerCase() === 'flatten'){
+			this.flatten = true;
+		} else if (String(argv._[k]).toLowerCase() === 'makecomps'){
+			this.makecomps = true;
+		}else if (path.extname(String(argv._[k])).toLowerCase() === '.psd'){
+			this.psdPaths.push(argv._[k]);
 		}
 	}
 	
 	var self = this;
+	//if (psdPaths.length === 0){
+	//	psdPaths = ['{active}'];
+	//}
+	//for (var ddd = 0; ddd < psdPaths.length; ddd++){	
+	//}
+	
+	this.psdIndex = -1;
+	this.processNext();
+	
+};
+
+Choppy.simpleArrDupe = function(arr){
+	var dupe = [];
+	for (var i = 0; i < arr.length; i++){
+		dupe[i] = arr[i];
+	}
+	return dupe;
+}
+
+Choppy.prototype.onPsdDone = function() { 
+	this.processNext();
+}
+
+Choppy.prototype.processNext = function() { 
+	
+	this.psdIndex++;
+	var targetPsdPath = this.psdPaths[this.psdIndex];
+	
+	var activeMode;
+	if (this.psdPaths.length == 0){		
+		activeMode = true;
+		if (this.psdIndex == 1){
+			return;
+		}
+	} else {
+	
+		activeMode = false;
+		if (targetPsdPath == null){
+			//console.log('Processed ' + this.psdPaths.length + ' docs');
+			return;
+		}
+		var pathSource = targetPsdPath;
+		if (targetPsdPath.charAt(0) === '~' || targetPsdPath.charAt(0) === path.sep){
+			// Know it's an absolute path
+		} else {
+			// Attempt relative
+			targetPsdPath = process.cwd() + path.sep + targetPsdPath;			
+			if (!fs.existsSync(targetPsdPath)){
+				// Fallback to abs
+				targetPsdPath = pathSource;
+			}
+		}
+	}
+	
+	var psdLabel = !activeMode ? path.basename(targetPsdPath) : 'Active document';
+	console.log('\nPSD ' + String(this.psdIndex + 1) + '/' + (activeMode ? '1' : this.psdPaths.length) + ' '+psdLabel+' ...');
+	
+	var self = this;
 	
 	// Get the active doc.
-	photoshop.invoke(activeDocumentJSX, function(error, activeDocument){		
+	photoshop.invoke(ensurePsdIsActiveDocumentJSX, [targetPsdPath, path.sep], function(error, activeDocument){
 		
-	  var psdContainingDir = Choppy.ensureDirPathHasTrailingSlash(activeDocument.path, path.sep);
-	  var baseConfigData = {};
-	   
-	  // Check for config
-	  var configFilePath = psdContainingDir + self.CONFIG_FILENAME;
-	  if (fs.existsSync(configFilePath)) {
-				baseConfigData = JSON.parse(fs.readFileSync(configFilePath, 'utf8'));
+		var responseBuffer = '';
+		
+		if (self.flatten || self.makecomps){
+			
+			if (self.flatten){
+				console.log('Flattening'+(self.outputSelected ? ' selected layers' : '')+'...');
+			}
+			if (self.makecomps){
+				if (self.outputSelected){
+					console.log('Making a comp for each selected top-level layer using selected or 1st layer comp as guide...');
+				} else {
+					console.log('Making a comp for each top-level layer using 1st layer comp as guide...');
+				}
+			}
+			photoshop.createStream(processJSX, {flatten: self.flatten, pathSep:path.sep, makecomps:self.makecomps, outputSelected:self.outputSelected}).on('data', function(data) {
+		
+				var dataStr = data.toString();
+				if (dataStr.substr(0,6) === 'debug:'){
+					console.log(dataStr.substr(6));
+				} else {
+					responseBuffer += dataStr;
+				}
+		
+			}).on('end', function() {
+				
+				var responseData;
+				try {
+					responseData = JSON.parse(responseBuffer);
+				} catch (e) {
+					console.log(responseBuffer.toString());
+					return;
+				}
+				
+				console.log(responseData.msg);
+				
+				self.onPsdDone();
+		
+			});
+			
+			return;
 		} 
 		
+		var psdContainingDir = Choppy.ensureDirPathHasTrailingSlash(activeDocument.path, path.sep);
+		var baseConfigData = {};
+	 
+		// Check for config
+		var configFilePath = psdContainingDir + self.CONFIG_FILENAME;
+		if (fs.existsSync(configFilePath)) {
+				baseConfigData = JSON.parse(fs.readFileSync(configFilePath, 'utf8'));
+		} 
+	
 		baseConfigData.basePath = Choppy.ensureDirPathHasTrailingSlash(baseConfigData.basePath, path.sep);
-		
+	
 		// Check for templates
+		self.templateFiles = Choppy.simpleArrDupe(self.templateFilesCore);
 		var localTemplateDirPath = psdContainingDir + self.TEMPLATE_DIR_NAME + path.sep;
 		if (fs.existsSync(localTemplateDirPath)) {
 			Choppy.addFilePathsInDirToArray(localTemplateDirPath, self.templateFiles);
 		}
-		
+	
 		var tplData = self.getTemplateDataFromFiles(self.templateFiles);
+	
+		var processStream = photoshop.createStream(processJSX, {tplData:tplData, pathSep:path.sep, baseConfigData:baseConfigData, TEMPLATE_PARTS:self.TEMPLATE_PARTS, dryRun:self.dryRun, outputSelected:self.outputSelected}).on('data', function(data) {
 		
-		var responseBuffer = '';
-		var processStream = photoshop.createStream(processJSX, {tplData:tplData, pathSep:path.sep, baseConfigData:baseConfigData, TEMPLATE_PARTS:self.TEMPLATE_PARTS, dryRun:dryRun, outputSelected:outputSelected}).on('data', function(data) {
-  		
-  		var dataStr = data.toString();
-  		if (dataStr.substr(0,6) === 'debug:'){
-  			console.log(dataStr.substr(6));
-  		} else {
-  			responseBuffer += dataStr;
-  		}
-  		
+			var dataStr = data.toString();
+			if (dataStr.substr(0,6) === 'debug:'){
+				console.log(dataStr.substr(6));
+			} else {
+				responseBuffer += dataStr;
+			}
+		
 		}).on('end', function() {
-			
+		
 			var responseData;
 			try {
 				responseData = JSON.parse(responseBuffer);
@@ -72,13 +189,15 @@ var Choppy = function() {
 				return;
 			}
 			
-			console.log(JSON.stringify(responseData.outputData, null, 2));
-			console.log('\n\n' + responseData.outputString + '\n\n');
-			
+			if (self.verbose){
+				console.log(JSON.stringify(responseData.outputData, null, 2));
+			}
+			console.log('\n' + responseData.outputString + '\n');
+		
 			if (responseData.outputFilePath && responseData.outputFilePath.length > 0){
-				
+			
 				var outputFileContents = responseData.outputString;
-				
+			
 				if (responseData.outputTags && responseData.outputTags.start && responseData.outputTags.end && responseData.outputTags.start.length > 0 && responseData.outputTags.end.length > 0){
 					var existingContents = fs.readFileSync(psdContainingDir + responseData.outputFilePath, 'utf8');
 					var searchPattern = new RegExp(responseData.outputTags.start.replace(/[-/\\^$*+?.()|[\]{}]/g, '\\$&') + '(.|[\r\n])*' + responseData.outputTags.end.replace(/[-/\\^$*+?.()|[\]{}]/g, '\\$&'), 'gi');
@@ -90,51 +209,58 @@ var Choppy = function() {
 						console.log('Found tags: "'+responseData.outputTags.start+'" and "'+responseData.outputTags.end+'".\n');
 					}
 				}
-				
+			
 				fs.writeFileSync(psdContainingDir + responseData.outputFilePath, outputFileContents);
 				console.log('Wrote to ' + responseData.outputFilePath + '\n');
-				
+			
+			}
+			
+			if (!self.dryRun){
 				// Optimize using imageoptim-cli
-				
-				if (!dryRun){
-				
-					var optimizeFilePaths = [];
-					for (var j = 0; j < responseData.outputData.length; j++){
-						if (responseData.outputData[j].optimize){
-							optimizeFilePaths.push(psdContainingDir + baseConfigData.basePath + responseData.outputData[j].src); 
-						}
-					}
-					if (optimizeFilePaths.length > 0){
-						var isMac = /^darwin/.test(process.platform);
-						if (!isMac){
-							console.log('Cannot optimize on non-Mac systems. See https://github.com/JamieMason/ImageOptim-CLI for more info.');
-						} else {
-							
-							var imageoptimFilePath = require.resolve('imageoptim-cli');
-							
-							console.log('Optimizing...\n');
-							var optimize = spawn('sh', [__dirname + path.sep + 'optimize.sh', imageoptimFilePath, optimizeFilePaths.join('\n')]);
-	
-							optimize.stdout.on('data', function (data) {  
-								console.log(data.toString());
-							});
-
-							optimize.stderr.on('data', function (data) {
-								console.log('stderr: ' + data);
-							});
-
-							optimize.on('exit', function (code) {
-								if (code !== 0){
-									console.log('Error encountered.\n');
-								}
-							});
-						}
+				var optimizeFilePaths = [];
+				for (var j = 0; j < responseData.outputData.length; j++){
+					if (responseData.outputData[j].optimize){
+						optimizeFilePaths.push(psdContainingDir + baseConfigData.basePath + responseData.outputData[j].src); 
 					}
 				}
+				if (optimizeFilePaths.length > 0){
+					var isMac = /^darwin/.test(process.platform);
+					if (!isMac){
+						console.log('Cannot optimize on non-Mac systems. See https://github.com/JamieMason/ImageOptim-CLI for more info.');
+						self.onPsdDone();
+					} else {
+					
+						var imageoptimFilePath = require.resolve('imageoptim-cli');
+					
+						console.log('Optimizing...\n');
+						var optimize = spawn('sh', [__dirname + path.sep + 'optimize.sh', imageoptimFilePath, optimizeFilePaths.join('\n')]);
+
+						optimize.stdout.on('data', function (data) {  
+							console.log(data.toString());
+						});
+
+						optimize.stderr.on('data', function (data) {
+							console.log('stderr: ' + data);
+						});
+
+						optimize.on('exit', function (code) {
+							if (code !== 0){
+								console.log('Error encountered.\n');
+							}
+							self.onPsdDone();
+						});
+					}
+				} else {
+					self.onPsdDone();					
+				}
+			} else {
+				self.onPsdDone();					
 			}
- 		});		
+			
+		});		
 	});
-};
+
+}
 
 // Given an array of template filepaths, build a data object.
 Choppy.prototype.getTemplateDataFromFiles = function(filePathArr) {
@@ -208,16 +334,70 @@ Choppy.ensureDirPathHasTrailingSlash = function(path, sep){
 // JSX 
 // ---
 
-function activeDocumentJSX(){
+function ensurePsdIsActiveDocumentJSX(targetPath, sep){
 	/* jshint ignore:start */
-	//console.log();
-	
-  return {path : app.activeDocument.path};
+	if (targetPath === null){
+		return {path : app.activeDocument.path};
+	} else {
+		var target = new File(targetPath);
+		var activeDoc;
+		try{
+			activeDoc = app.activeDocument;
+		} catch(e){
+			activeDoc = null;
+		}
+		if (activeDoc){	
+			var active = new File(app.activeDocument.path + sep + app.activeDocument.name);
+			// Path already open
+			if (target.absoluteURI === active.absoluteURI){
+				return {path : app.activeDocument.path}; 	
+			}
+			// Is doc in another tab?
+			if (app.documents.length > 1){
+				for (var i = 0;i < app.documents.length; i++){
+					app.activeDocument = app.documents[i];
+					var active = new File(app.activeDocument.path + sep + app.activeDocument.name);
+					if (target.absoluteURI === active.absoluteURI){
+						return {path : app.activeDocument.path}; 	
+					}
+				}
+			}
+		} 
+		// Open the doc
+		app.open(target);
+		return {path : app.activeDocument.path};
+	}	
   /* jshint ignore:end */
 }
 
 function processJSX(stream, props){
 	/* jshint ignore:start */
+	
+	// If a layer comp or layer starts with this char then they will not be included in operatios
+	var IGNORE_PREFIX_CHARS = {'`':true};
+	
+	var flatten = props.flatten;
+	var makecomps = props.makecomps;
+	var utilMsg = '\n';
+	var doc = app.activeDocument;
+	var outputSelected = props.outputSelected;
+	var selLayerLookup = getSelectedLayerLookup();
+	// var isSel = isLayerSelected(layerRef, selLayerLookup);
+	if (flatten){
+		
+		var flattenResult = flattenTopLevelLayers(doc, false, outputSelected, selLayerLookup, IGNORE_PREFIX_CHARS);
+		
+		utilMsg+= 'Flattened ' + String(flattenResult.flattenedLayers) + ' layers out of ' + String(flattenResult.totalLayers) + ' total.';
+		
+		if (!makecomps) {
+			// If not hanging on to make comps then bail
+			stream.writeln(
+				JSON.stringify({msg: utilMsg}, null, 2)
+			);
+			return;
+		
+		}
+	}
 	
 	// Set args
 	var tplData = props.tplData;
@@ -225,7 +405,6 @@ function processJSX(stream, props){
 	var baseConfigData = props.baseConfigData;
 	var TEMPLATE_PARTS = props.TEMPLATE_PARTS;
 	var dryRun = props.dryRun;
-	var outputSelected = props.outputSelected;
 	
 	//stream.writeln('debug:var tplData=' + JSON.stringify(tplData) +';');
 	//stream.writeln('debug:var pathSep=' + JSON.stringify(pathSep) +';');
@@ -235,6 +414,7 @@ function processJSX(stream, props){
 	//stream.writeln('debug:var outputSelected=' + JSON.stringify(outputSelected) +';');
 	
 	// The default image prop fallbacks.
+	
 	var PROP_DEFAULTS = {alt: '', cropToBounds: false, template: 'img', ext: 'jpg', quality: 80, flipX: false, flipY: false, relativePath: './', basePath: './', matte:null, colors:256, optimize:false, scale:1, sizeFileHandle:'', sizeIndex:-1, sizes:null, reg: 'TL', outputValueFactor: 1, regX:0, regY:0, regPercX:0, regPercY:0};
 	// Which props are affected by |outputValueFactor|
 	var OUTPUT_VALUE_FACTOR_PROPS = ['width','height','x','y','regX','regY']; 	
@@ -252,7 +432,7 @@ function processJSX(stream, props){
 	var REG_LAYER_NAME = '{reg}';
 	
 	// Get psd info
-	var doc = app.activeDocument;
+	
 	var psdContainingDir = ensureDirPathHasTrailingSlash(doc.path, pathSep);
 	var psdName = doc.name;
 	var psdFullName = doc.fullName;
@@ -272,84 +452,170 @@ function processJSX(stream, props){
 	var configData = null;
 	var outputData = [];
 	
+	var makecompsGuideComp = null;
+	
 	for (var i =0; i < doc.layerComps.length; i++){
 		
 		var layerComp = doc.layerComps[i];
 		var compData = {};
 		var totalProps = 0;
 		
-		// Parse comment vars
-		if (layerComp.comment){
-			var arr = layerComp.comment.split('\n');
-			for (var j = 0; j < arr.length; j++){
-				var chunk = arr[j];
-				var chunkArr = chunk.split(':');
-				if (chunkArr.length > 1){
+		if (!IGNORE_PREFIX_CHARS[layerComp.name.charAt(0)]){
+		
+			// Parse comment vars
+			if (layerComp.comment){
+			
+				var arr = layerComp.comment.split('\n');
+				for (var j = 0; j < arr.length; j++){
+					var chunk = arr[j];
+					var chunkArr = chunk.split(':');
+					if (chunkArr.length > 1){
 					
-					var varName = chunkArr[0].split(' ').join('');
-					chunkArr.splice(0,1);
-					var varVal = chunkArr.join(':');				
-					while(varVal.charAt(0) === ' '){
-						varVal = varVal.substr(1);
-					}								
-					// Boolean
-					if (BOOL_PROPS.indexOf(varName) >= 0){
-						var tmpVarVal = varVal.toLowerCase(0);
-						varVal = false;
-						if (tmpVarVal.charAt(0) === 't' || tmpVarVal.charAt(0) === 'y' || tmpVarVal.charAt(0) === '1'){
-							varVal = true;
+						var varName = chunkArr[0].split(' ').join('');
+						chunkArr.splice(0,1);
+						var varVal = chunkArr.join(':');				
+						while(varVal.charAt(0) === ' '){
+							varVal = varVal.substr(1);
+						}								
+						// Boolean
+						if (BOOL_PROPS.indexOf(varName) >= 0){
+							var tmpVarVal = varVal.toLowerCase(0);
+							varVal = false;
+							if (tmpVarVal.charAt(0) === 't' || tmpVarVal.charAt(0) === 'y' || tmpVarVal.charAt(0) === '1'){
+								varVal = true;
+							}
+						}	else if (NUM_PROPS.indexOf(varName) >= 0){
+							var tmpVarVal = Number(eval(varVal));
+							if (!isNaN(tmpVarVal)){
+								varVal = tmpVarVal;
+							}
 						}
-					}	else if (NUM_PROPS.indexOf(varName) >= 0){
-						var tmpVarVal = Number(eval(varVal));
-						if (!isNaN(tmpVarVal)){
-							varVal = tmpVarVal;
-						}
+					
+						compData[varName] = varVal;
+						totalProps++;
 					}
-					
-					compData[varName] = varVal;
-					totalProps++;
+				}
+			}
+		
+			// Default prop-less comment to alt text
+			if (totalProps == 0){
+				compData = {alt: layerComp.comment};
+			}
+		
+			// Detect extension in filename and overwrite 'ext' prop if it is valud
+			var outputNameExt = getExt(layerComp.name).toLowerCase();
+			var outputNameExtOK = false;
+			for (var k = 0; k < VALID_OUTPUT_EXTS.length; k++){
+				if (outputNameExt === VALID_OUTPUT_EXTS[k]){
+					outputNameExtOK = true;
+					break;
+				}
+			}
+			if (outputNameExtOK){
+				compData['ext'] = outputNameExt;
+				compData['base'] = getFileBaseName(layerComp.name, outputNameExt);
+			} else {
+				compData['base'] = getFileBaseName(layerComp.name, '');
+			}
+		
+			compData.layerCompRef = layerComp;
+		
+			if (layerComp.name === CONFIG_LAYERCOMP_NAME){
+				delete compData['base'];
+				configData = compData;
+			
+			} else {
+		
+				compData.selected = layerComp.selected;
+		
+				// Override relative path if defined in layer comp name.
+				var layerCompRelativePath = getContainingDirPath(layerComp.name, pathSep);
+				if (layerCompRelativePath && layerCompRelativePath.length > 0){		
+					compData['relativePath'] = ensureDirPathHasTrailingSlash(getContainingDirPath(layerComp.name, pathSep), pathSep);
+				}
+			
+				if (makecomps){ 			
+					if (makecompsGuideComp == null || (outputSelected && layerComp.selected)){
+						makecompsGuideComp = compData; // Use first at least
+					}
+					if (!outputSelected || layerComp.selected){
+						break;	
+					}							
+				} else {
+					outputData.push(compData);
+				}
+			
+			}
+		}	
+	}
+	
+	// Make comps utility command
+	// Waited for first layer comp to process data, as we will base all new comps
+	// on |ext| and |relativePath| of this comp
+	if (makecomps){
+		
+		var ext = '';
+		var relativePath = '';
+		var comment = '';
+		var appearance = true;
+		var position = true
+		var visibility = true;
+		if (makecompsGuideComp != null){
+		
+			utilMsg += 'Using "'+makecompsGuideComp.layerCompRef.name+'" as a guide for config\n';
+			
+			ext = makecompsGuideComp.ext ? makecompsGuideComp.ext : '';
+			relativePath = makecompsGuideComp.relativePath ? makecompsGuideComp.relativePath : '';
+			comment = makecompsGuideComp.layerCompRef.comment ? makecompsGuideComp.layerCompRef.comment : '';
+			appearance = makecompsGuideComp.layerCompRef.appearance;
+			position = makecompsGuideComp.layerCompRef.position;
+			visibility = makecompsGuideComp.layerCompRef.visibility;
+			
+		}
+		
+		if (ext.length > 0 && ext.charAt(0) != '.'){
+			ext = '.' + ext;
+		}
+		
+		for (var i = 0 ; i < doc.layers.length; i++){
+			var layer = doc.layers[i];
+			layer.visible = false;
+		}
+		
+	
+		var totalNewComps = 0;
+		for (var i = 0 ; i < doc.layers.length; i++){
+			var layer = doc.layers[i];
+			if (!IGNORE_PREFIX_CHARS[layer.name.charAt(0)]){
+			
+				if (!outputSelected || isLayerSelected(layer, selLayerLookup)){
+			
+					layer.visible = true;
+				
+					var layerCompName = relativePath + layer.name + ext;
+					// http://jongware.mit.edu/pscs5js_html/psjscs5/pc_LayerComps.html
+					// LayerComp add (name: string[, comment: string][, appearance: bool=false][, position: bool=false][, visibility: bool=true])		 
+					doc.layerComps.add(layerCompName, comment, appearance, position, visibility);
+				
+					utilMsg+= '- "' + layerCompName + '"'
+					utilMsg+= '\n';
+					layer.visible = false;		
+				
+					totalNewComps++;		
+				
 				}
 			}
 		}
 		
-		// Default prop-less comment to alt text
-		if (totalProps == 0){
-			compData = {alt: layerComp.comment};
-		}
+		utilMsg += '\nMade ' + String(totalNewComps) + ' layer comps.\n';
 		
-		// Detect extension in filename and overwrite 'ext' prop if it is valud
-		var outputNameExt = getExt(layerComp.name).toLowerCase();
-		var outputNameExtOK = false;
-		for (var k = 0; k < VALID_OUTPUT_EXTS.length; k++){
-			if (outputNameExt === VALID_OUTPUT_EXTS[k]){
-				outputNameExtOK = true;
-				break;
-			}
-		}
-		if (outputNameExtOK){
-			compData['ext'] = outputNameExt;
-			compData['base'] = getFileBaseName(layerComp.name, outputNameExt);
-		} else {
-			compData['base'] = getFileBaseName(layerComp.name, '');
-		}
+		// Write response back to node
+
+		stream.writeln(
+			JSON.stringify({msg: utilMsg}, null, 2)
+		);
+		return;
 		
-		compData.layerCompRef = layerComp;
-		
-		if (layerComp.name === CONFIG_LAYERCOMP_NAME){
-			delete compData['base'];
-			configData = compData;
-			
-		} else {
-		
-			compData.selected = layerComp.selected;
-		
-			// Override relative path if defined in layer comp name.
-			var layerCompRelativePath = getContainingDirPath(layerComp.name, pathSep);
-			if (layerCompRelativePath && layerCompRelativePath.length > 0){		
-				compData['relativePath'] = ensureDirPathHasTrailingSlash(getContainingDirPath(layerComp.name, pathSep), pathSep);
-			}
-			outputData.push(compData);
-		}
 	}
 	
 	takeSnapshot();
@@ -558,7 +824,7 @@ function processJSX(stream, props){
 		var outputBounds;
 		if (outputData[p].cropToBounds){	
 			// Only flatten if cropping
-			flattenTopLevelLayersThatAreVisible(doc);
+			flattenTopLevelLayers(doc, true, false, null, IGNORE_PREFIX_CHARS);
 			revertRequired = true; // A revert is required whether a dry-run or not
 			outputBounds = getVisibleBounds(doc);
 		} else {
@@ -765,7 +1031,54 @@ function processJSX(stream, props){
 	
 	// JSX functions
 	// -------------
+	//get the list of multiple selected layers
+	//http://www.nekomataya.info/nekojyarashi/wiki.cgi?photoshop%CA%A3%BF%F4%A5%BB%A5%EC%A5%AF%A5%C8
 	
+	// Usage:
+	// var selLayerLookup = getSelectedLayerLookup();
+	// var isSel = isLayerSelected(layerRef, selLayerLookup);
+	
+	function getSelectedLayerLookup(layerRef){
+		
+		var lookup = {};
+		if (outputSelected){
+			var selLayers = _getSelectedLayers();
+			for (var zzz = 0; zzz < selLayers.length; zzz++){
+				lookup['name:' + selLayers[zzz].name + ',parent:' + selLayers[zzz].parent.name] = true
+			}
+		}
+		return lookup;
+		
+	}
+	
+	function isLayerSelected(layerRef, lookup){
+		
+		return lookup['name:' + layerRef.name + ',parent:' + layerRef.parent.name];
+		
+	}
+	
+	function _getSelectedLayers(){ 
+		var idGrp = stringIDToTypeID( "groupLayersEvent" );
+		var descGrp = new ActionDescriptor();
+		var refGrp = new ActionReference();
+		refGrp.putEnumerated(charIDToTypeID( "Lyr " ),charIDToTypeID( "Ordn" ),charIDToTypeID( "Trgt" ));
+		descGrp.putReference(charIDToTypeID( "null" ), refGrp );
+		executeAction( idGrp, descGrp, DialogModes.ALL );
+		var resultLayers=new Array();
+		for (var ix=0;ix<app.activeDocument.activeLayer.layers.length;ix++){resultLayers.push(app.activeDocument.activeLayer.layers[ix])}
+		var id8 = charIDToTypeID( "slct" );
+			var desc5 = new ActionDescriptor();
+			var id9 = charIDToTypeID( "null" );
+			var ref2 = new ActionReference();
+			var id10 = charIDToTypeID( "HstS" );
+			var id11 = charIDToTypeID( "Ordn" );
+			var id12 = charIDToTypeID( "Prvs" );  
+			ref2.putEnumerated( id10, id11, id12 );
+		desc5.putReference( id9, ref2 );
+		executeAction( id8, desc5, DialogModes.NO );
+		return resultLayers;
+	}
+
 	function dupeObj(obj){
 		return JSON.parse(JSON.stringify(obj));
 	}
@@ -1099,21 +1412,36 @@ function processJSX(stream, props){
 	// Flatten
 	// -------
 	
-	function flattenTopLevelLayersThatAreVisible(doc){
+	function flattenTopLevelLayers(doc, visibleOnly, selectedOnly, selLayerLookup, IGNORE_PREFIX_CHARS){
+	
 		
-		for (var i = 0 ; i < doc.layers.length; i++){
-				var layer = doc.layers[i];
-				if (layer.visible){
-					doc.activeLayer = layer;
-					if (layer.typename === 'LayerSet' ||
-							activeLayerHasLayerMask() ||
-							activeLayerHasVectorMask() ||
-							activeLayerHasFilterMask() ||
-							activeLayerHasStyle()){						
-							createSmartObject(doc, layer);
+		
+		var flattenedLayers = 0;
+		var totalLayers = doc.layers.length;
+		for (var i = 0 ; i < totalLayers; i++){
+			var layer = doc.layers[i];
+			
+			if (!IGNORE_PREFIX_CHARS[layer.name.charAt(0)]){
+			
+				if (!visibleOnly || layer.visible){
+					if (!selectedOnly || isLayerSelected(layer, selLayerLookup)){
+				
+						doc.activeLayer = layer;
+						if (layer.typename === 'LayerSet' ||
+								activeLayerHasLayerMask() ||
+								activeLayerHasVectorMask() ||
+								activeLayerHasFilterMask() ||
+								activeLayerHasStyle()){	
+								flattenedLayers++;
+								createSmartObject(doc, layer);
+						}
 					}
 				}
+			
 			}
+		}
+	
+		return {flattenedLayers:flattenedLayers, totalLayers:totalLayers};
 	}
 	
 	// create smartobject from specified layer (default is active layer)
@@ -1213,5 +1541,11 @@ function processJSX(stream, props){
 	
 	/* jshint ignore:end */
 }
+
+function pr(obj){
+	
+	console.log(JSON.stringify(obj, null, 2));
+	
+};
 
 module.exports = new Choppy();
