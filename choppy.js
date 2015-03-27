@@ -155,7 +155,9 @@ Choppy.prototype.processNext = function() {
 	 
 		// Check for config
 		var configFilePath = psdContainingDir + self.CONFIG_FILENAME;
+		
 		if (fs.existsSync(configFilePath)) {
+			
 				baseConfigData = JSON.parse(fs.readFileSync(configFilePath, 'utf8'));
 		} 
 	
