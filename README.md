@@ -320,6 +320,7 @@ first.
 
 ### Release History ###
 
+- v1.5.3 - Supporting new line '\n' for inline defined templates
 - v1.5.2 - Added width and height params to force output dimensions
 - v1.5.1 - Added 'makecomps' utility command, ignore backtick prefixed layers and comps
 - v1.5.0 - Added 'flatten' utility command

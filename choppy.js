@@ -422,6 +422,7 @@ function processJSX(stream, props){
 	var OUTPUT_VALUE_FACTOR_PROPS = ['width','height','x','y','regX','regY']; 	
 	var BOOL_PROPS = ['cropToBounds', 'flipX', 'flipY', 'optimize'];
 	var NUM_PROPS = ['quality','scale'];
+	var NEWLINE_PROPS = ['template'];
 	// These will have a trailing slash added if needed.
 	var DIR_PROPS = ['relativePath', 'basePath'];
 	// These will be set to config data if not set.
@@ -491,8 +492,10 @@ function processJSX(stream, props){
 							if (!isNaN(tmpVarVal)){
 								varVal = tmpVarVal;
 							}
+						} else if (NEWLINE_PROPS.indexOf(varName) >= 0){
+							varVal =  String(varVal).split('\\n').join('\n');
 						}
-					
+						
 						compData[varName] = varVal;
 						totalProps++;
 					}
