@@ -417,7 +417,7 @@ function processJSX(stream, props){
 	
 	// The default image prop fallbacks.
 	
-	var PROP_DEFAULTS = {alt: '', cropToBounds: false, template: 'img', ext: 'jpg', quality: 80, flipX: false, flipY: false, relativePath: './', basePath: './', matte:null, colors:256, optimize:false, scale:1, sizeFileHandle:'', sizeIndex:-1, sizes:null, reg: 'TL', outputValueFactor: 1, regX:0, regY:0, regPercX:0, regPercY:0};
+	var PROP_DEFAULTS = {alt: '', cropToBounds: false, template: 'img', ext: 'jpg', quality: 80, flipX: false, flipY: false, relativePath: './', basePath: './', matte:null, colors:256, optimize:false, scale:1, sizeFileHandle:'', sizeIndex:-1, sizes:null, reg: 'TL', outputValueFactor: 1, regX:0, regY:0, regPercX:0, regPercY:0, forceW:-1, forceH:-1};
 	// Which props are affected by |outputValueFactor|
 	var OUTPUT_VALUE_FACTOR_PROPS = ['width','height','x','y','regX','regY']; 	
 	var BOOL_PROPS = ['cropToBounds', 'flipX', 'flipY', 'optimize'];
@@ -832,10 +832,28 @@ function processJSX(stream, props){
 		} else {
 			outputBounds = copyBounds(psdBounds);
 		}
+		var cropBounds = copyBounds(outputBounds)
 		outputData[p].outputBounds = outputBounds;
 		
-		// outputData[p].x = parseInt(outputBounds[0], 10);
-		// outputData[p].y = parseInt(outputBounds[1], 10);
+		// Resize bounds to accomodate cropping - this way reg point will be correct
+		
+		var forceW;
+		var forceH;
+		if (outputData[p].forceW > 0 || outputData[p].forceH > 0){
+			
+			var cropW = getBoundsWidth(cropBounds);
+			var cropH = getBoundsHeight(cropBounds);
+			
+			forceW = outputData[p].forceW > 0 ? outputData[p].forceW : cropW;
+			forceH = outputData[p].forceH > 0 ? outputData[p].forceH : cropH; 
+			
+			// Assuming canvas resize will be middle center
+			outputBounds[0] = Math.round(outputBounds[0] - (forceW - cropW) * 0.5);
+			outputBounds[1] = Math.round(outputBounds[1] - (forceH - cropH) * 0.5);
+			outputBounds[2] = Math.round(outputBounds[2] + (forceW - cropW) * 0.5);
+			outputBounds[3] = Math.round(outputBounds[3] + (forceH - cropH) * 0.5);
+		
+		}
 		
 		if (!regPt && outputData[p].reg !== '(custom)'){
 			// Interpret 'reg' data
@@ -856,16 +874,20 @@ function processJSX(stream, props){
 		outputData[p].regPercX = (regPt.x - outputData[p].outputBounds[0]) / (outputData[p].outputBounds[2] - outputData[p].outputBounds[0]);
 		outputData[p].regPercY = (regPt.y - outputData[p].outputBounds[1]) / (outputData[p].outputBounds[3] - outputData[p].outputBounds[1])
 		
-		outputData[p].width = String(parseInt(outputBounds[2],10)-parseInt(outputBounds[0],10)); 
-		outputData[p].height = String(parseInt(outputBounds[3],10)-parseInt(outputBounds[1],10));
+		outputData[p].width = outputBounds[2]-outputBounds[0]; //String(parseInt(outputBounds[2],10)-parseInt(outputBounds[0],10)); 
+		outputData[p].height = outputBounds[3]-outputBounds[1]; //String(parseInt(outputBounds[3],10)-parseInt(outputBounds[1],10));
 		
 		if (!dryRun && (!outputSelected || outputData[p].selected)){
 			
 			if (!areBoundsEqual(psdBounds, outputData[p].outputBounds)){
 				revertRequired = true;
-				doc.crop(outputData[p].outputBounds);
+				doc.crop(cropBounds);
 			}
-	
+			
+			if (outputData[p].forceW > 0 || outputData[p].forceH > 0){				
+				doc.resizeCanvas(UnitValue(forceW,"px"),UnitValue(forceH,"px"), AnchorPosition.MIDDLECENTER);
+			}
+			
 			if (outputData[p].flipX){
 				revertRequired = true;
 				doc.flipCanvas(Direction.HORIZONTAL);
@@ -875,6 +897,8 @@ function processJSX(stream, props){
 				revertRequired = true;
 				doc.flipCanvas(Direction.VERTICAL);
 			}
+			
+			
 			
 			if (outputData[p].scale != 1){
 				revertRequired = true;
@@ -1173,6 +1197,16 @@ function processJSX(stream, props){
 	
 		return {x : layerRef.bounds[0].value + (layerRef.bounds[2].value - layerRef.bounds[0].value)*0.5, y: layerRef.bounds[1].value + (layerRef.bounds[3].value - layerRef.bounds[1].value)*0.5};
 		
+	}
+	
+	function getBoundsWidth(bounds){
+		var width = bounds[2] - bounds[0];
+		return width;
+	}
+	
+	function getBoundsHeight(bounds){		
+		var height = bounds[3] - bounds[1];
+		return height;
 	}
 	
 	function getRegPtFromRegStringAndBounds(regStr, bounds){

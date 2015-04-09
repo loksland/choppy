@@ -97,6 +97,9 @@ Image output quality for jpgs only. 0-100. Default is 80.
 Set the matte color for gif as a hex string. Eg. #FF3300. Hash optional, case insensitive.
 - **colors** (integer)  
 Set the number of colors for a gif. 1-256.
+- **forceW** and **forceH** (integer)
+After being cropped to bounds and before applying scaling, the canvas will be resized to
+these pixel dimensions. Default is -1 which will not be applied.
 - **scale**  (float)
 Scale the output. Default 1.0. Eg 0.5 will output 50% size.  
 Optionally enter simple expressions to be evaluated. Eg. 2/3
@@ -317,6 +320,7 @@ first.
 
 ### Release History ###
 
+- v1.5.2 - Added width and height params to force output dimensions
 - v1.5.1 - Added 'makecomps' utility command, ignore backtick prefixed layers and comps
 - v1.5.0 - Added 'flatten' utility command
 - v1.4.9 - Active doc bugfix
