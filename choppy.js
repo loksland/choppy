@@ -24,10 +24,9 @@ var Choppy = function() {
 	this.verbose = false;
 	this.flatten = false;
 	this.makecomps = false;
-	
+	this.findandreplace = false;
+	this.findandreplaceProps = {find:null, replace:null}
 	var argv = require('minimist')(process.argv.slice(2));
-	
-	//console.log(JSON.stringify(argv, null, 2));
 	
 	for (var k = 0; k < argv._.length; k++){
 		if (String(argv._[k]).toLowerCase() === 'dry'){
@@ -40,11 +39,16 @@ var Choppy = function() {
 			this.flatten = true;
 		} else if (String(argv._[k]).toLowerCase() === 'makecomps'){
 			this.makecomps = true;
-		}else if (path.extname(String(argv._[k])).toLowerCase() === '.psd'){
+		} else if (path.extname(String(argv._[k])).toLowerCase() === '.psd'){
 			this.psdPaths.push(argv._[k]);
+		} else if (String(argv._[k]).toLowerCase() === 'findandreplace'){
+			if (k+1 <= argv._.length-1 && k+2 <= argv._.length-1){
+				this.findandreplace = true;
+				this.findandreplaceProps = {find:String(argv._[k+1]),replace:String(argv._[k+2])};
+			}
 		}
 	}
-	
+
 	var self = this;
 	//if (psdPaths.length === 0){
 	//	psdPaths = ['{active}'];
@@ -110,19 +114,11 @@ Choppy.prototype.processNext = function() {
 		
 		var responseBuffer = '';
 		
-		if (self.flatten || self.makecomps){
+		if (self.findandreplace){
+
+			console.log('Finding "'+self.findandreplaceProps.find+'" and replacing with "'+self.findandreplaceProps.replace+'" in layer comp names and comments...');
 			
-			if (self.flatten){
-				console.log('Flattening'+(self.outputSelected ? ' selected layers' : '')+'...');
-			}
-			if (self.makecomps){
-				if (self.outputSelected){
-					console.log('Making a comp for each selected top-level layer using selected or 1st layer comp as guide...');
-				} else {
-					console.log('Making a comp for each top-level layer using 1st layer comp as guide...');
-				}
-			}
-			photoshop.createStream(processJSX, {flatten: self.flatten, pathSep:path.sep, makecomps:self.makecomps, outputSelected:self.outputSelected}).on('data', function(data) {
+			photoshop.createStream(processJSX, {pathSep:path.sep, outputSelected:self.outputSelected, findandreplace:self.findandreplace, findandreplaceProps:self.findandreplaceProps}).on('data', function(data) { 
 		
 				var dataStr = data.toString();
 				if (dataStr.substr(0,6) === 'debug:'){
@@ -149,6 +145,49 @@ Choppy.prototype.processNext = function() {
 			
 			return;
 		} 
+		
+		
+		if (self.flatten || self.makecomps){
+			
+			if (self.flatten){
+				console.log('Flattening'+(self.outputSelected ? ' selected layers' : '')+'...');
+			}
+			if (self.makecomps){
+				if (self.outputSelected){
+					console.log('Making a comp for each selected top-level layer using selected or 1st layer comp as guide...');
+				} else {
+					console.log('Making a comp for each top-level layer using 1st layer comp as guide...');
+				}
+			}
+			photoshop.createStream(processJSX, {flatten: self.flatten, pathSep:path.sep, makecomps:self.makecomps, outputSelected:self.outputSelected}).on('data', function(data) { 
+		
+				var dataStr = data.toString();
+				if (dataStr.substr(0,6) === 'debug:'){
+					console.log(dataStr.substr(6));
+				} else {
+					responseBuffer += dataStr;
+				}
+		
+			}).on('end', function() {
+				
+				var responseData;
+				try {
+					responseData = JSON.parse(responseBuffer);
+				} catch (e) {
+					console.log(responseBuffer.toString());
+					return;
+				}
+				
+				console.log(responseData.msg);
+				
+				self.onPsdDone();
+		
+			});
+			
+			return;
+		} 
+		
+		
 		
 		var psdContainingDir = Choppy.ensureDirPathHasTrailingSlash(activeDocument.path, path.sep);
 		var baseConfigData = {};
@@ -383,7 +422,29 @@ function processJSX(stream, props){
 	var utilMsg = '\n';
 	var doc = app.activeDocument;
 	var outputSelected = props.outputSelected;
-	var selLayerLookup = getSelectedLayerLookup();
+	var selLayerLookup = {};
+	if (makecomps || flatten){
+		selLayerLookup = getSelectedLayerLookup();
+	}
+	
+	var findandreplace = props.findandreplace ;
+	var findandreplaceProps = props.findandreplaceProps;
+	
+	if (findandreplace && findandreplaceProps){
+		var find = findandreplaceProps.find;
+		var replace = findandreplaceProps.replace;
+		for (var i =0; i < doc.layerComps.length; i++){		
+			var lyrcmp = doc.layerComps[i];
+			lyrcmp.name = String(lyrcmp.name).split(find).join(replace);
+			if (lyrcmp.comment){
+				lyrcmp.comment = String(lyrcmp.comment).split(find).join(replace);
+			}
+		}
+		
+		return;
+		
+	}
+	
 	// var isSel = isLayerSelected(layerRef, selLayerLookup);
 	if (flatten){
 		
@@ -417,11 +478,11 @@ function processJSX(stream, props){
 	
 	// The default image prop fallbacks.
 	
-	var PROP_DEFAULTS = {alt: '', cropToBounds: false, template: 'img', ext: 'jpg', quality: 80, flipX: false, flipY: false, relativePath: './', basePath: './', matte:null, colors:256, optimize:false, scale:1, sizeFileHandle:'', sizeIndex:-1, sizes:null, reg: 'TL', outputValueFactor: 1, regX:0, regY:0, regPercX:0, regPercY:0, forceW:-1, forceH:-1};
+	var PROP_DEFAULTS = {alt: '', cropToBounds: false, template: 'img', ext: 'jpg', quality: 80, flipX: false, flipY: false, relativePath: './', basePath: './', matte:null, colors:256, optimize:false, scale:1, sizeFileHandle:'', sizeIndex:-1, sizes:null, reg: 'TL', outputValueFactor: 1, regX:0, regY:0, regPercX:0, regPercY:0, forceW:-1, forceH:-1, roundOutputValues:false, boundsComp:'', outputOriginX: 0, outputOriginY: 0, outputOriginLayer:null, placeholder:false};
 	// Which props are affected by |outputValueFactor|
 	var OUTPUT_VALUE_FACTOR_PROPS = ['width','height','x','y','regX','regY']; 	
-	var BOOL_PROPS = ['cropToBounds', 'flipX', 'flipY', 'optimize'];
-	var NUM_PROPS = ['quality','scale'];
+	var BOOL_PROPS = ['cropToBounds', 'flipX', 'flipY', 'optimize', 'roundOutputValues', 'placeholder'];
+	var NUM_PROPS = ['quality','scale','forceW','forceH', 'outputOriginX', 'outputOriginX'];
 	var NEWLINE_PROPS = ['template'];
 	// These will have a trailing slash added if needed.
 	var DIR_PROPS = ['relativePath', 'basePath'];
@@ -433,6 +494,9 @@ function processJSX(stream, props){
 	var TEMPLATE_VAR_PRE = '%';
 	var TEMPLATE_VAR_POST = '%';
 	var REG_LAYER_NAME = '{reg}';
+	var BOUNDS_COMP_NEXT_KEYWORD = '{next}'
+	var BOUNDS_COMP_PREV_KEYWORD = '{prev}'
+	
 	
 	// Get psd info
 	
@@ -452,16 +516,35 @@ function processJSX(stream, props){
 		throw new Error('No PSD document open.')
 	}
 	
+	
+	
 	var configData = null;
 	var outputData = [];
 	
 	var makecompsGuideComp = null;
 	
+	var compNameCheck = {}
+	var dupeCompNamesPresent = false;
 	for (var i =0; i < doc.layerComps.length; i++){
 		
 		var layerComp = doc.layerComps[i];
+		if (dupeCompNamesPresent){
+			// Do nothing		
+		} else if (compNameCheck[layerComp.name]){
+			dupeCompNamesPresent = true;
+		} else {
+			compNameCheck[layerComp.name] = true;
+		}
 		var compData = {};
 		var totalProps = 0;
+		
+		compData._nextLayerCompName = '';
+		if (i > 0){
+			compData._prevLayerCompName = doc.layerComps[i-1].name;
+		}
+		if (i < doc.layerComps.length-1){
+			compData._nextLayerCompName = doc.layerComps[i+1].name;
+		}
 		
 		if (!IGNORE_PREFIX_CHARS[layerComp.name.charAt(0)]){
 		
@@ -494,6 +577,7 @@ function processJSX(stream, props){
 							}
 						} else if (NEWLINE_PROPS.indexOf(varName) >= 0){
 							varVal =  String(varVal).split('\\n').join('\n');
+							varVal =  String(varVal).split('\\t').join('\t');
 						}
 						
 						compData[varName] = varVal;
@@ -532,7 +616,7 @@ function processJSX(stream, props){
 			} else {
 		
 				compData.selected = layerComp.selected;
-		
+				
 				// Override relative path if defined in layer comp name.
 				var layerCompRelativePath = getContainingDirPath(layerComp.name, pathSep);
 				if (layerCompRelativePath && layerCompRelativePath.length > 0){		
@@ -748,6 +832,11 @@ function processJSX(stream, props){
 			}
 		}
 	}
+	
+	var layerBoundsCacheLayers = {};
+	
+	var cacheLayerCompBounds = !dupeCompNamesPresent; 
+	var layerCompBoundsCache = {};
 
 	for (p = 0; p < outputData.length; p++){
 		
@@ -802,11 +891,112 @@ function processJSX(stream, props){
 			}
 		}		
 		outputData[p].base = outputData[p].base.split(SIZE_FILEHANDLE_PLACEHOLDER).join('');
+		outputData[p].base = outputData[p].base + fileNameSizeHandlePart
+		
 		outputData[p].relativePath = outputData[p].relativePath.split(SIZE_FILEHANDLE_PLACEHOLDER).join('');
 		
-		outputData[p].srcFileName = outputData[p].base + fileNameSizeHandlePart + '.' + outputData[p].ext;
+		outputData[p].srcFileName = outputData[p].base + '.' + outputData[p].ext;
 		outputData[p].src = outputData[p].relativePath + outputData[p].srcFileName;
 		outputData[p].exportPath = psdContainingDir + outputData[p].basePath + outputData[p].relativePath + outputData[p].srcFileName;
+		
+		// outputOriginLayer
+		// -----------------
+				
+		if (outputData[p].outputOriginLayer != null && outputData[p].outputOriginLayer.length > 0){
+			if (layerBoundsCacheLayers[outputData[p].outputOriginLayer]){
+				
+				outputData[p].outputOriginX = layerBoundsCacheLayers[outputData[p].outputOriginLayer][0];
+				outputData[p].outputOriginY = layerBoundsCacheLayers[outputData[p].outputOriginLayer][1];			
+					
+			} else {
+				
+				var alteredDoc = false;
+				var foundLayer = false;
+				
+				for (var i = 0 ; i < doc.layers.length; i++){
+				
+					var lyr = doc.layers[i];
+					if (lyr.name == outputData[p].outputOriginLayer){
+						
+						if (foundLayer){
+							throw new Error('|outputOriginLayer| "'+outputData[p].outputOriginLayer+'" is not unique');
+						}
+						lyr.visible = true;
+						foundLayer = true;
+						alteredDoc = flattenTopLevelLayerAtIndex(i);						
+						
+					} else {
+						
+						lyr.visible = false;
+						
+					}
+				}
+				
+				if (!foundLayer){
+					
+					throw new Error('|outputOriginLayer| "'+outputData[p].outputOriginLayer+'" not found');
+					
+				} else {
+					
+					var layerBounds = getVisibleBounds(doc);					
+					outputData[p].outputOriginX = layerBounds[0];
+					outputData[p].outputOriginY = layerBounds[1];		
+					layerBoundsCacheLayers[outputData[p].outputOriginLayer] = layerBounds;
+					
+					revertSnapshot(doc);
+					
+				}
+			}
+		}
+		
+		
+		// boundsComp
+		// ----------
+		
+		var boundsCompBounds = null;
+		if (outputData[p].boundsComp && outputData[p].boundsComp.length > 0){	
+			
+			var targetLayerCompName; 
+			if (outputData[p].boundsComp == BOUNDS_COMP_PREV_KEYWORD){
+				targetLayerCompName = outputData[p]._prevLayerCompName
+			} else if (outputData[p].boundsComp == BOUNDS_COMP_NEXT_KEYWORD){
+				targetLayerCompName = outputData[p]._nextLayerCompName
+			} else {
+				targetLayerCompName = outputData[p].boundsComp
+			}
+
+			var cropToBoundsTarget = doc.layerComps.getByName(targetLayerCompName);
+			if (cropToBoundsTarget){
+		
+				if (!outputData[p].cropToBounds){
+					outputData[p].cropToBounds = true;
+				}
+				
+				if (cacheLayerCompBounds && layerCompBoundsCache[cropToBoundsTarget.name]){
+					
+					boundsCompBounds = copyBounds(layerCompBoundsCache[cropToBoundsTarget.name]);
+					
+				} else {
+				
+					cropToBoundsTarget.apply();
+				
+					// Hide reg layer so it's not included in bounds
+					for (var r = 0 ; r < doc.layers.length; r++){
+						var lyr = doc.layers[r];
+						if (lyr.visible && lyr.name && lyr.name.length >= REG_LAYER_NAME.length && lyr.name.substr(0,REG_LAYER_NAME.length) === REG_LAYER_NAME){				
+							lyr.visible = false;
+						}
+					}	
+				
+					flattenTopLevelLayers(doc, true, false, null, IGNORE_PREFIX_CHARS);
+					boundsCompBounds = getVisibleBounds(doc);
+					revertSnapshot(doc);
+					
+					layerCompBoundsCache[cropToBoundsTarget.name] = copyBounds(boundsCompBounds);
+									
+				}
+			} 
+		}
 		
 		// Apply layer comp
 		var layerComp = outputData[p].layerCompRef;
@@ -816,7 +1006,7 @@ function processJSX(stream, props){
 		var regPt = null;
 		for (var r = 0 ; r < doc.layers.length; r++){
 			var lyr = doc.layers[r];
-			if (lyr.visible && lyr.name && lyr.name === REG_LAYER_NAME){				
+			if (lyr.visible && lyr.name && lyr.name.length >= REG_LAYER_NAME.length && lyr.name.substr(0,REG_LAYER_NAME.length) === REG_LAYER_NAME){			
 				lyr.visible = false;
 				regPt = getLayerCenterPoint(lyr);
 				outputData[p].reg = '(custom)';
@@ -828,13 +1018,26 @@ function processJSX(stream, props){
 		
 		var outputBounds;
 		if (outputData[p].cropToBounds){	
-			// Only flatten if cropping
-			flattenTopLevelLayers(doc, true, false, null, IGNORE_PREFIX_CHARS);
-			revertRequired = true; // A revert is required whether a dry-run or not
-			outputBounds = getVisibleBounds(doc);
+		
+			if (boundsCompBounds){
+				outputBounds = boundsCompBounds;
+			} else {
+				
+				if (cacheLayerCompBounds && layerCompBoundsCache[layerComp.name]){
+						boundsCompBounds = copyBounds(layerCompBoundsCache[layerComp.name]);
+				} else {
+					// Only flatten if cropping
+					flattenTopLevelLayers(doc, true, false, null, IGNORE_PREFIX_CHARS);
+					revertRequired = true; // A revert is required whether a dry-run or not
+					outputBounds = getVisibleBounds(doc);
+				}
+			}
+			
+			
 		} else {
 			outputBounds = copyBounds(psdBounds);
 		}
+
 		var cropBounds = copyBounds(outputBounds)
 		outputData[p].outputBounds = outputBounds;
 		
@@ -857,7 +1060,7 @@ function processJSX(stream, props){
 			outputBounds[3] = Math.round(outputBounds[3] + (forceH - cropH) * 0.5);
 		
 		}
-		
+
 		if (!regPt && outputData[p].reg !== '(custom)'){
 			// Interpret 'reg' data
 			regPt = getRegPtFromRegStringAndBounds(outputData[p].reg, outputData[p].outputBounds);
@@ -867,9 +1070,10 @@ function processJSX(stream, props){
 			regPt = {x: parseInt(outputBounds[0], 10), y: parseInt(outputBounds[1], 10)};
 		}
 		
+		
 		// Apply reg point data
-		outputData[p].x = regPt.x;
-		outputData[p].y = regPt.y;
+		outputData[p].x = regPt.x - outputData[p].outputOriginX;
+		outputData[p].y = regPt.y - outputData[p].outputOriginY;
 		
 		outputData[p].regX = regPt.x - outputData[p].outputBounds[0];
 		outputData[p].regY = regPt.y - outputData[p].outputBounds[1];
@@ -880,8 +1084,8 @@ function processJSX(stream, props){
 		outputData[p].width = outputBounds[2]-outputBounds[0]; //String(parseInt(outputBounds[2],10)-parseInt(outputBounds[0],10)); 
 		outputData[p].height = outputBounds[3]-outputBounds[1]; //String(parseInt(outputBounds[3],10)-parseInt(outputBounds[1],10));
 		
-		if (!dryRun && (!outputSelected || outputData[p].selected)){
-			
+		if (!dryRun && !outputData[p].placeholder && (!outputSelected || outputData[p].selected)){
+
 			if (!areBoundsEqual(psdBounds, outputData[p].outputBounds)){
 				revertRequired = true;
 				doc.crop(cropBounds);
@@ -901,9 +1105,8 @@ function processJSX(stream, props){
 				doc.flipCanvas(Direction.VERTICAL);
 			}
 			
-			
-			
 			if (outputData[p].scale != 1){
+			
 				revertRequired = true;
 				doc.resizeImage(UnitValue(doc.width.value * outputData[p].scale,"px"),null,null,ResampleMethod.BICUBIC);
 				// Update dims
@@ -952,7 +1155,7 @@ function processJSX(stream, props){
 			} else {
 				throw new Error('Export format "'+outputData[p].ext+'" not found.');
 			}
-	
+			
 			doc.exportDocument(new File(outputData[p].exportPath), ExportType.SAVEFORWEB, exportOptions);
 	
 		} else {
@@ -973,9 +1176,9 @@ function processJSX(stream, props){
 		}
 		
 		if (revertRequired){
+			
 			revertSnapshot(doc);
 		}
-		
 		
 		if (outputSelected){
 			// Don't optimize if didn't output
@@ -993,7 +1196,7 @@ function processJSX(stream, props){
 					} 
 					templateFound = true;
 					if (part == 'main'){
-						var mainData = applyVarObjToTemplateString(outputData[p], tplData[outputData[p].template][part], TEMPLATE_VAR_PRE, TEMPLATE_VAR_POST, outputData[p].outputValueFactor, OUTPUT_VALUE_FACTOR_PROPS);
+						var mainData = applyVarObjToTemplateString(outputData[p], tplData[outputData[p].template][part], TEMPLATE_VAR_PRE, TEMPLATE_VAR_POST, outputData[p].outputValueFactor, OUTPUT_VALUE_FACTOR_PROPS, outputData[p].roundOutputValues);
 						if (tplData[outputData[p].template]['inter'] !== undefined && p > 0){
 							mainData = tplData[outputData[p].template]['inter'] + mainData;
 						}
@@ -1018,9 +1221,10 @@ function processJSX(stream, props){
 			if (output['main'] === undefined){
 				output['main'] = [];
 			}
-			output['main'].push(applyVarObjToTemplateString(outputData[p], outputData[p].template, TEMPLATE_VAR_PRE, TEMPLATE_VAR_POST, outputData[p].outputValueFactor, OUTPUT_VALUE_FACTOR_PROPS));
+			output['main'].push(applyVarObjToTemplateString(outputData[p], outputData[p].template, TEMPLATE_VAR_PRE, TEMPLATE_VAR_POST, outputData[p].outputValueFactor, OUTPUT_VALUE_FACTOR_PROPS, outputData[p].roundOutputValues));
 		}
 	}
+	
 	
 	// Revert doc
 	revertSnapshot(doc);
@@ -1053,7 +1257,9 @@ function processJSX(stream, props){
 											outputString: outputString,
 											outputFilePath: outputFilePath,
 											outputTags: outputTags}
-											
+								
+					
+												
 	stream.writeln(
 		JSON.stringify(responseData, null, 2)
 	);
@@ -1146,8 +1352,6 @@ function processJSX(stream, props){
 	
 	}
 	
-	
-	
 	function filenameBaseToAltText(base){
 		
 		if (base.length > 0){
@@ -1226,44 +1430,58 @@ function processJSX(stream, props){
 		var hozP = 0;
 		var vertP = 0;
 		
-		regStr = regStr.toUpperCase();
-		regStr = regStr.split('M').join('C');
-		regStr = regStr.split('CC').join('C');
+		if (regStr.split(',').length == 2) {
 		
-		if (regStr == 'C'){
-			hozP = vertP = 0.5;
+			var coords = regStr.split(',');
+			var rx = Number(coords[0]);
+			var ry = Number(coords[1]);
+			
+			return {x: rx, y: ry};
+		
 		} else {
 		
-			var remains = '';
-			var hozFound = false;
-			var vertFound = false;
-			var chars = ['L','R','T','B'];
-			for (var i = 0; i < chars.length; i++){
-				var c = chars[i];
+			regStr = regStr.toUpperCase();
+			regStr = regStr.split('M').join('C');
+			regStr = regStr.split('CC').join('C');
+		
+			if (regStr == 'C'){
+				hozP = vertP = 0.5;
+			} else {
+		
+				var remains = '';
+				var hozFound = false;
+				var vertFound = false;
+				//var chars = ['L','R','T','B'];
+				//for (var i = 0; i < chars.length; i++){
+				// var c = chars[i];
+				
 				if (regStr.split('L').length > 1){
 					hozP = 0;
 					hozFound = true;					
 				} else if (regStr.split('R').length > 1){
 					hozP = 1;
 					hozFound = true;
-				} else if (regStr.split('T').length > 1){
+				} 
+				
+				if (regStr.split('T').length > 1){
 					vertP = 0;
 					vertFound = true;
 				} else if (regStr.split('B').length > 1){
 					vertP = 1;
 					vertFound = true;
 				}
-			}
+				//}
 			
-			if (hozFound && !vertFound && regStr.split('C').length > 1){
-				vertP = 0.5;
-			} else if (!hozFound && vertFound && regStr.split('C').length > 1){
-				hozP = 0.5;
+				if (hozFound && !vertFound && regStr.split('C').length > 1){
+					vertP = 0.5;
+				} else if (!hozFound && vertFound && regStr.split('C').length > 1){
+					hozP = 0.5;
+				}
 			}
+		
+			return {x: x + width * hozP, y: y + height * vertP};
+		
 		}
-		
-		return {x: x + width * hozP, y: y + height * vertP};
-		
 	}
 	
 	function getVisibleBounds(doc){
@@ -1326,7 +1544,7 @@ function processJSX(stream, props){
 		
 	}
 	
-	function applyVarObjToTemplateString(obj,str, pre, post, outputValueFactor, OUTPUT_VALUE_FACTOR_PROPS){		
+	function applyVarObjToTemplateString(obj,str, pre, post, outputValueFactor, OUTPUT_VALUE_FACTOR_PROPS, roundOutputValues){		
 		
 		str = String(str);
 		var outputValueFactorPropsLookup = '#' + OUTPUT_VALUE_FACTOR_PROPS.join('#') + '#';
@@ -1335,6 +1553,9 @@ function processJSX(stream, props){
 			// Apply value factor to applicable props
 			if (outputValueFactorPropsLookup.split('#'+p+ '#').length === 2){
 				val = Number(val) * outputValueFactor;
+				if (roundOutputValues){
+					val = Math.round(val);
+				}
 			}
 			
 			str = str.split(pre+p+post).join(val);
@@ -1453,8 +1674,6 @@ function processJSX(stream, props){
 	
 	function flattenTopLevelLayers(doc, visibleOnly, selectedOnly, selLayerLookup, IGNORE_PREFIX_CHARS){
 	
-		
-		
 		var flattenedLayers = 0;
 		var totalLayers = doc.layers.length;
 		for (var i = 0 ; i < totalLayers; i++){
@@ -1481,6 +1700,24 @@ function processJSX(stream, props){
 		}
 	
 		return {flattenedLayers:flattenedLayers, totalLayers:totalLayers};
+		
+	}
+	
+	function flattenTopLevelLayerAtIndex(index){
+	
+			var layer = doc.layers[index];
+			var wasAltered = false;	
+			doc.activeLayer = layer;
+			if (layer.typename === 'LayerSet' ||
+					activeLayerHasLayerMask() ||
+					activeLayerHasVectorMask() ||
+					activeLayerHasFilterMask() ||
+					activeLayerHasStyle()){	
+					wasAltered = true;
+					createSmartObject(doc, layer);
+			}
+		
+			return wasAltered;
 	}
 	
 	// create smartobject from specified layer (default is active layer)

@@ -78,6 +78,12 @@ then the text will be assumed as alt text.
 - **cropToBounds** (boolean)  
 If true then the output image dimensions will be informed by the bounds of the layer comp 
 rather than the PSD dimensions.
+- **boundsComp** (string)
+Default blank. Specify another layer comp, by name, to be used for the bounds of this 
+clip. May be a comment comp (beginning with a backtick) or another comp. Will 
+automatically enable |cropToBounds| if set. Also accepts `{prev}` and `{next}` to reference
+previous/next layer comps. This is preferable as it doesn't break if layer comps are 
+renamed.
 - **template** (string)  
 Either custom template string or the slug of a template file. Default is "img".
 - **ext** (string)  
@@ -125,11 +131,27 @@ Requires free software [ImageAlpha](http://pngmini.com/) and [ImageOptim](http:/
 Override the reg point for the image. Default is top left. Input values are 2 characters: 
 the first represents vertical space, the second horizontal. Eg. "TL" = top left, 
 "BR" = bottom right, "C" = centered both dimensions, "CR" = centered vert + right aligned,
-"TC" = top aligned + centered horizontally
+"TC" = top aligned + centered horizontally. Alternatively enter coords relative to 
+document origin - eg "100,33".
 - **outputValueFactor** (float)  
 Default 1. All values sent to output templates will be multiplied by this factor. It 
 doesn't affect the size of images exported, just the values written for |x|, |y|, |regX|, 
 |regY|, |width| and |height| in the template output. 
+- **roundOutputValues** (boolean)  
+Default false. All values sent to output templates will be rounded to integer values. It 
+doesn't affect the size of images exported, just the values written for |x|, |y|, |regX|, 
+|regY|, |width| and |height| in the template output.
+- **outputOriginX** and **outputOriginX** (integer)  
+Default 0. Sets the virtual origin point of the document fo output. These values will be
+removed from the |x| and |y| properties supplied to the output template. Will not affect 
+images exported, just the |x| and |y| values displayed.
+- **outputOriginLayer** (string) Layer name  
+Default null. Optionally provide a layer name whose top left bounds will be set to the 
+|outputOriginX| and |outputOriginY|. It's assumed the layer name is unique to the document
+and on the top level.
+- **placeholder**  (boolean)
+Default false. If set to true will not output an image though all other processing will
+occur.
 
 ### {reg} Layer ###
 
@@ -318,8 +340,26 @@ Note: Flattening and sel - eg. `choppy makecomps sel flattened` is not recommend
 flattening process may reset selected state of layers. In this scenario run `flatten` 
 first.
 
+**Find and replace**
+
+```bash
+$ choppy findandreplace "string find" "replace with this"
+```
+
+Will find and replace matching string in layercomp names and comment fields.
+
 ### Release History ###
 
+- v1.6.7 - %base% prop incorporates size file handle
+- v1.6.6 - Allow text suffix of {reg} layer
+- v1.6.4 - Reg str bugfix
+- v1.6.3 - Coord support for |reg| property
+- v1.6.2 - |placeholder| export
+- v1.6.1 - Select mode bugfix
+- v1.5.8 - |findandreplace| utility
+- v1.5.7 - Added |outputOriginX|, |outputOriginY| and |outputOriginLayer| props
+- v1.5.5 - Added |boundsComp| feature. Bounds caching introduced.
+- v1.5.4 - |roundOutputValues| added. Supporting new line '\t' for inline defined templates
 - v1.5.3 - Supporting new line '\n' for inline defined templates
 - v1.5.2 - Added width and height params to force output dimensions
 - v1.5.1 - Added 'makecomps' utility command, ignore backtick prefixed layers and comps
