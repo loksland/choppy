@@ -1,0 +1,9 @@
+.%base% {
+  background-image: url("%src%");
+  position: absolute;
+  left: %tlX%px;
+  top: %tlY%px;
+  width: %width%px;
+  height: %height%px;
+  z-index: %index%;
+}

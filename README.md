@@ -84,8 +84,6 @@ clip. May be a comment comp (beginning with a backtick) or another comp. Will
 automatically enable |cropToBounds| if set. Also accepts `{prev}` and `{next}` to reference
 previous/next layer comps. This is preferable as it doesn't break if layer comps are 
 renamed.
-- **template** (string)  
-Either custom template string or the slug of a template file. Default is "img".
 - **ext** (string)  
 Optional extension to be applied. This will only apply if there is no extension in the 
 layer comp name. Valid entries are jpg, gif or png.
@@ -94,7 +92,7 @@ Flip the output horizontally / vertically. Default is false.
 - **relativePath** (string)  
 Optional output path relative to |basePath|. This will only apply if there is no path
 defined in the image layer comp itself.
--- **basePath**  (string)  
+- **basePath**  (string)  
 The relative path from the PSD to the output directory. 
 It's recommended to use .choppy instead for defining this variable.
 - **quality** (integer)  
@@ -116,6 +114,8 @@ Eg. '@2x:1,sd:.5' will output 2 files and inject '@2x' and 'sd' into the filenam
 the extension.  
 Optionally put {s} in your file name / path to customize where the file size is placed in the output.  
 If size set then any scale props will be overwritten and ignored.
+All sizes will be added to the output as if additional layercomps were created for each
+size.
 - **sizeDef%Name%** (string)  
 Optionally define individual sizes or groups of sizes by shorthand name. These can reference
 other sizes. Eg:  
@@ -166,12 +166,23 @@ All image vars above can be set and will be used as defaults if they are not set
 layer comps.
 
 The {choppy} layer comp also supports the following variables:
+- **template** (string)  
+Either custom template string or the slug of a template file. Default is "img".  
+This can also be defined per comp.   
+Comma separate template slugs for multiple output. Also requires comma-separation of 
+{choppy} comp vars |outputFilePath|, |outputTagStart| and |outputTagEnd| if present.
 - **outputFilePath** (string)  
 If set the string result will be saved to the specified file path, relative to the base 
-path. Variables can be included in this string and they will be swapped out.
+path. Variables can be included in this string and they will be swapped out.  
+Comma separate if multiple templates specified.
 - **outputTagStart**, **outputTagEnd** (string)
 When |outputFilePath| is true, the result string will be inserted between
-these tags if found in the output file. 
+these tags if found in the output file.  
+Comma separate if multiple templates specified.
+- **reverseOrder** (boolean)  
+Default false. If set to true will reverse the layer comp order. If |boundsComp| is 
+specified with {next} or {prev} this will not be affected, only output. 
+The output prop |index| will output in ascending order whether reversed or not.
 
 ### Base config file ###
 
@@ -200,6 +211,7 @@ overriding. Eg.
 Templates
 ---------
 
+- Defined by **template** var
 - Templates reside in ./tpl/ directory.
 - Custom templates can be defined in a ./tpl/ dir in the same folder as the PSD.
 - Default template is "img".
@@ -228,6 +240,9 @@ the reg point will be used instead. The output scale will be applied to this val
 The reg point relative to the top left of the pic bounds. Eg. If set to top left then will 
 be (0,0), if bottom right will be the same as (pic.width, pic.height). The output scale 
 will be applied to this value.
+- **tlX + tlY**  
+The position of the top left of the pic regardless of registration point position. 
+Respects |outputOriginLayer|, |scale|
 - **regPercX + regPercY**  
 The relative reg point as a percentage value of the pic dimensions. Eg. (0,0) is top left,
 (1,1) is bottom right.
@@ -350,6 +365,10 @@ Will find and replace matching string in layercomp names and comment fields.
 
 ### Release History ###
 
+- v1.6.8 - Multi template support,  
+           |reverseOrder| {choppy} comp var  
+           |tlX| and |tlY| output props added  
+           Made '.choppy' config file and |basePath| optional (defaults to "./")  
 - v1.6.7 - %base% prop incorporates size file handle
 - v1.6.6 - Allow text suffix of {reg} layer
 - v1.6.4 - Reg str bugfix

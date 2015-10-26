@@ -195,13 +195,18 @@ Choppy.prototype.processNext = function() {
 		// Check for config
 		var configFilePath = psdContainingDir + self.CONFIG_FILENAME;
 		
-		if (fs.existsSync(configFilePath)) {
-			
+		if (fs.existsSync(configFilePath)) {			
 				baseConfigData = JSON.parse(fs.readFileSync(configFilePath, 'utf8'));
-		} 
-	
-		baseConfigData.basePath = Choppy.ensureDirPathHasTrailingSlash(baseConfigData.basePath, path.sep);
-	
+				if (baseConfigData.basePath && baseConfigData.basePath.length > 0){
+					baseConfigData.basePath = Choppy.ensureDirPathHasTrailingSlash(baseConfigData.basePath, path.sep);
+				}
+		}	 else {
+				baseConfigData = {};
+		}
+		
+		//stream.writeln('debug:que?' + baseConfigData.basePath);
+		
+		
 		// Check for templates
 		self.templateFiles = Choppy.simpleArrDupe(self.templateFilesCore);
 		var localTemplateDirPath = psdContainingDir + self.TEMPLATE_DIR_NAME + path.sep;
@@ -478,11 +483,11 @@ function processJSX(stream, props){
 	
 	// The default image prop fallbacks.
 	
-	var PROP_DEFAULTS = {alt: '', cropToBounds: false, template: 'img', ext: 'jpg', quality: 80, flipX: false, flipY: false, relativePath: './', basePath: './', matte:null, colors:256, optimize:false, scale:1, sizeFileHandle:'', sizeIndex:-1, sizes:null, reg: 'TL', outputValueFactor: 1, regX:0, regY:0, regPercX:0, regPercY:0, forceW:-1, forceH:-1, roundOutputValues:false, boundsComp:'', outputOriginX: 0, outputOriginY: 0, outputOriginLayer:null, placeholder:false};
+	var PROP_DEFAULTS = {alt: '', cropToBounds: false, template: 'img', ext: 'jpg', quality: 80, flipX: false, flipY: false, relativePath: './', basePath: './', matte:null, colors:256, optimize:false, scale:1, sizeFileHandle:'', sizeIndex:-1, sizes:null, reg: 'TL', outputValueFactor: 1, regX:0, regY:0, regPercX:0, regPercY:0, forceW:-1, forceH:-1, roundOutputValues:false, boundsComp:'', outputOriginX: 0, outputOriginY: 0, outputOriginLayer:null, placeholder:false, reverseOrder: false, tlX:0, tlY:0};
 	// Which props are affected by |outputValueFactor|
-	var OUTPUT_VALUE_FACTOR_PROPS = ['width','height','x','y','regX','regY']; 	
-	var BOOL_PROPS = ['cropToBounds', 'flipX', 'flipY', 'optimize', 'roundOutputValues', 'placeholder'];
-	var NUM_PROPS = ['quality','scale','forceW','forceH', 'outputOriginX', 'outputOriginX'];
+	var OUTPUT_VALUE_FACTOR_PROPS = ['width','height','x','y','regX','regY', 'tlX', 'tlY']; 	
+	var BOOL_PROPS = ['cropToBounds', 'flipX', 'flipY', 'optimize', 'roundOutputValues', 'placeholder', 'reverseOrder'];
+	var NUM_PROPS = ['quality','scale','forceW','forceH', 'outputOriginX', 'outputOriginX', 'tlX', 'tlY'];
 	var NEWLINE_PROPS = ['template'];
 	// These will have a trailing slash added if needed.
 	var DIR_PROPS = ['relativePath', 'basePath'];
@@ -638,6 +643,9 @@ function processJSX(stream, props){
 		}	
 	}
 	
+	
+	
+	
 	// Make comps utility command
 	// Waited for first layer comp to process data, as we will base all new comps
 	// on |ext| and |relativePath| of this comp
@@ -671,7 +679,6 @@ function processJSX(stream, props){
 			layer.visible = false;
 		}
 		
-	
 		var totalNewComps = 0;
 		for (var i = 0 ; i < doc.layers.length; i++){
 			var layer = doc.layers[i];
@@ -717,6 +724,11 @@ function processJSX(stream, props){
 	}
 	// Apply defaults to config so they can extend each output img.
 	configData = extendObjWithDefaults(configData, PROP_DEFAULTS);
+	
+	// Flip order of output 
+	if (configData.reverseOrder){
+		outputData.reverse();
+	}
 	
 	var output = {};
 	var templatePartsAdded = {};
@@ -833,6 +845,8 @@ function processJSX(stream, props){
 		}
 	}
 	
+	
+	
 	var layerBoundsCacheLayers = {};
 	
 	var cacheLayerCompBounds = !dupeCompNamesPresent; 
@@ -898,6 +912,8 @@ function processJSX(stream, props){
 		outputData[p].srcFileName = outputData[p].base + '.' + outputData[p].ext;
 		outputData[p].src = outputData[p].relativePath + outputData[p].srcFileName;
 		outputData[p].exportPath = psdContainingDir + outputData[p].basePath + outputData[p].relativePath + outputData[p].srcFileName;
+		
+		
 		
 		// outputOriginLayer
 		// -----------------
@@ -1070,6 +1086,8 @@ function processJSX(stream, props){
 			regPt = {x: parseInt(outputBounds[0], 10), y: parseInt(outputBounds[1], 10)};
 		}
 		
+		outputData[p].tlX = outputData[p].outputBounds[0] - outputData[p].outputOriginX;
+		outputData[p].tlY = outputData[p].outputBounds[1] - outputData[p].outputOriginY;
 		
 		// Apply reg point data
 		outputData[p].x = regPt.x - outputData[p].outputOriginX;
@@ -1118,6 +1136,10 @@ function processJSX(stream, props){
 				
 				outputData[p].regX = outputData[p].regX * outputData[p].scale;
 				outputData[p].regY = outputData[p].regY * outputData[p].scale;
+				
+				outputData[p].tlX = outputData[p].tlX * outputData[p].scale;
+				outputData[p].tlY = outputData[p].tlY * outputData[p].scale;
+				
 			}
 		
 			// Ouput image
@@ -1251,6 +1273,9 @@ function processJSX(stream, props){
 			outputTags = {start:configData.outputTagStart, end:configData.outputTagEnd};
 		}
 	}
+	
+	
+	
 	
 	// Write response back to node
 	var responseData = {outputData: cleanupOutputDataForOutput(outputData,['layerCompRef']),
