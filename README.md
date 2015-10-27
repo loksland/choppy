@@ -167,18 +167,22 @@ layer comps.
 
 The {choppy} layer comp also supports the following variables:
 - **template** (string)  
-Either custom template string or the slug of a template file. Default is "img".  
-This can also be defined per comp.   
-Comma separate template slugs for multiple output. Also requires comma-separation of 
+Either custom raw template string or the slug of a template file. Default is "img".  
+This can also be defined per comp.
+Comma separate template slugs for multiple output.
+Also requires comma-separation of 
 {choppy} comp vars |outputFilePath|, |outputTagStart| and |outputTagEnd| if present.
 - **outputFilePath** (string)  
 If set the string result will be saved to the specified file path, relative to the base 
 path. Variables can be included in this string and they will be swapped out.  
-Comma separate if multiple templates specified.
+Comma separate if multiple templates specified otherwise 1st entry will be used to pad
+out list. 
 - **outputTagStart**, **outputTagEnd** (string)
 When |outputFilePath| is true, the result string will be inserted between
 these tags if found in the output file.  
-Comma separate if multiple templates specified.
+Comma separate if multiple templates specified otherwise 1st entry will be used to pad
+out list. 
+Escaped hyphens will prevent PS from merging multiple in a row: `\-`.
 - **reverseOrder** (boolean)  
 Default false. If set to true will reverse the layer comp order. If |boundsComp| is 
 specified with {next} or {prev} this will not be affected, only output. 

@@ -31,7 +31,8 @@
   "devDependencies": {
     "grunt": "^0.4.5",
     "grunt-contrib-jshint": "^0.11.0",
-    "grunt-contrib-watch": "^0.6.1"
+    "grunt-contrib-watch": "^0.6.1",
+    "imageoptim-cli": "^1.11.6"
   },
   "dependencies": {
     "imageoptim-cli": "^1.11.6",

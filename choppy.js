@@ -188,10 +188,9 @@ Choppy.prototype.processNext = function() {
 		} 
 		
 		
-		
 		var psdContainingDir = Choppy.ensureDirPathHasTrailingSlash(activeDocument.path, path.sep);
 		var baseConfigData = {};
-	 
+		
 		// Check for config
 		var configFilePath = psdContainingDir + self.CONFIG_FILENAME;
 		
@@ -235,73 +234,130 @@ Choppy.prototype.processNext = function() {
 				return;
 			}
 			
-			if (self.verbose){
-				console.log(JSON.stringify(responseData.outputData, null, 2));
-			}
-			console.log('\n' + responseData.outputString + '\n');
-		
-			if (responseData.outputFilePath && responseData.outputFilePath.length > 0){
-			
-				var outputFileContents = responseData.outputString;
-			
-				if (responseData.outputTags && responseData.outputTags.start && responseData.outputTags.end && responseData.outputTags.start.length > 0 && responseData.outputTags.end.length > 0){
-					var existingContents = fs.readFileSync(psdContainingDir + responseData.outputFilePath, 'utf8');
-					var searchPattern = new RegExp(responseData.outputTags.start.replace(/[-/\\^$*+?.()|[\]{}]/g, '\\$&') + '(.|[\r\n])*' + responseData.outputTags.end.replace(/[-/\\^$*+?.()|[\]{}]/g, '\\$&'), 'gi');
-					outputFileContents = existingContents.replace(searchPattern, responseData.outputTags.start+responseData.outputString+responseData.outputTags.end);
-					var tagMatch = existingContents.match(searchPattern);
-					if (tagMatch === null){
-						throw new Error('Output tags not found.');
-					} else {
-						console.log('Found tags: "'+responseData.outputTags.start+'" and "'+responseData.outputTags.end+'".\n');
-					}
-				}
-			
-				fs.writeFileSync(psdContainingDir + responseData.outputFilePath, outputFileContents);
-				console.log('Wrote to ' + responseData.outputFilePath + '\n');
-			
+			if (!responseData.push){
+				responseData = [responseData];			
 			}
 			
-			if (!self.dryRun){
-				// Optimize using imageoptim-cli
-				var optimizeFilePaths = [];
-				for (var j = 0; j < responseData.outputData.length; j++){
-					if (responseData.outputData[j].optimize){
-						optimizeFilePaths.push(psdContainingDir + baseConfigData.basePath + responseData.outputData[j].src); 
-					}
+			
+			var responseDataArr = responseData;
+			
+			
+			for (var rd = 0; rd < responseDataArr.length; rd++){
+			
+				responseData = responseDataArr[rd];
+				
+				//console.log(responseData);
+				//return;
+				
+				if (self.verbose){
+					console.log(JSON.stringify(responseData.outputData, null, 2));
 				}
-				if (optimizeFilePaths.length > 0){
-					var isMac = /^darwin/.test(process.platform);
-					if (!isMac){
-						console.log('Cannot optimize on non-Mac systems. See https://github.com/JamieMason/ImageOptim-CLI for more info.');
-						self.onPsdDone();
-					} else {
-					
-						var imageoptimFilePath = require.resolve('imageoptim-cli');
-					
-						console.log('Optimizing...\n');
-						var optimize = spawn('sh', [__dirname + path.sep + 'optimize.sh', imageoptimFilePath, optimizeFilePaths.join('\n')]);
-
-						optimize.stdout.on('data', function (data) {  
-							console.log(data.toString());
-						});
-
-						optimize.stderr.on('data', function (data) {
-							console.log('stderr: ' + data);
-						});
-
-						optimize.on('exit', function (code) {
-							if (code !== 0){
-								console.log('Error encountered.\n');
+				console.log('\n' + responseData.outputString + '\n');
+			
+				if (responseData.outputFilePath && responseData.outputFilePath.length > 0){
+			
+					var outputFileContents = responseData.outputString;
+			
+					if (responseData.outputTags && responseData.outputTags.start && responseData.outputTags.end && responseData.outputTags.start.length > 0 && responseData.outputTags.end.length > 0){
+						
+						
+						for (var ps = 0; ps < 2; ps++){
+						
+							var existingContents = fs.readFileSync(psdContainingDir + responseData.outputFilePath, 'utf8');
+							var searchPattern = new RegExp(responseData.outputTags.start.replace(/[-/\\^$*+?.()|[\]{}]/g, '\\$&') + '(.|[\r\n])*' + responseData.outputTags.end.replace(/[-/\\^$*+?.()|[\]{}]/g, '\\$&'), 'gi');
+							outputFileContents = existingContents.replace(searchPattern, responseData.outputTags.start+responseData.outputString+responseData.outputTags.end);
+							var tagMatch = existingContents.match(searchPattern);
+						
+							if (tagMatch === null){
+								if (ps == 1){
+									throw new Error('Output tags not found.');
+								} else {
+								
+									responseData.outputTags.start = responseData.outputTags.start.split('\\-').join('-');
+									responseData.outputTags.end = responseData.outputTags.end.split('\\-').join('-');						
+									
+									//console.log(responseData.outputTags.start);												
+								}
+							} else {
+								console.log('Found tags: "'+responseData.outputTags.start+'" and "'+responseData.outputTags.end+'".\n');
+								break;
 							}
-							self.onPsdDone();
-						});
+						
+						}
+						
 					}
-				} else {
-					self.onPsdDone();					
+			
+					fs.writeFileSync(psdContainingDir + responseData.outputFilePath, outputFileContents);
+					console.log('Wrote to ' + responseData.outputFilePath + '\n');
+			
 				}
-			} else {
-				self.onPsdDone();					
+			
+			
+				// Optimize (on last loop)
+				
+				if (rd == responseDataArr.length - 1){ // Last loop only
+					if (!self.dryRun){
+						// Optimize using imageoptim-cli
+						var optimizeFilePaths = [];
+						for (var j = 0; j < responseData.outputData.length; j++){
+							if (responseData.outputData[j].optimize){
+							  var optPath = psdContainingDir + responseData.outputData[j].basePath + responseData.outputData[j].src;
+							  
+							  //optPath = optPath.split('/./').join(path.sep); // Remove these as they break the optimization program
+								optimizeFilePaths.push(optPath); 
+							}
+						}
+						if (optimizeFilePaths.length > 0){
+							var isMac = /^darwin/.test(process.platform);
+							if (!isMac){
+								console.log('Cannot optimize on non-Mac systems. See https://github.com/JamieMason/ImageOptim-CLI for more info.');
+								self.onPsdDone();
+							} else {
+		
+								var imageoptimFilePath = require.resolve('imageoptim-cli');
+		
+								console.log('Optimizing...\n');
+								var optimize = spawn('sh', [__dirname + path.sep + 'optimize.sh', imageoptimFilePath, optimizeFilePaths.join('\n')]);
+
+								optimize.stdout.on('data', function (data) {  
+									console.log(data.toString());
+								});
+
+								optimize.stderr.on('data', function (data) {
+									console.log('stderr: ' + data);
+								});
+
+								optimize.on('exit', function (code) {
+									if (code !== 0){
+										console.log('Error encountered.\n');
+									}
+									self.onPsdDone();
+								});
+							}
+						} else {
+							self.onPsdDone();					
+						}
+					} else {
+						self.onPsdDone();					
+					}
+				}
+			
 			}
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
+			
 			
 		});		
 	});
@@ -498,6 +554,8 @@ function processJSX(stream, props){
 	var SIZE_FILEHANDLE_PLACEHOLDER = '{s}';
 	var TEMPLATE_VAR_PRE = '%';
 	var TEMPLATE_VAR_POST = '%';
+	// What chars separate multiple templates when defined with |template| var
+	var TEMPLATE_MULTI_SEP = ',';
 	var REG_LAYER_NAME = '{reg}';
 	var BOUNDS_COMP_NEXT_KEYWORD = '{next}'
 	var BOUNDS_COMP_PREV_KEYWORD = '{prev}'
@@ -714,6 +772,10 @@ function processJSX(stream, props){
 		
 	}
 	
+	
+	
+	
+	
 	takeSnapshot();
 	
 	// Extend config data
@@ -730,9 +792,52 @@ function processJSX(stream, props){
 		outputData.reverse();
 	}
 	
-	var output = {};
-	var templatePartsAdded = {};
+	// The number of templates must be defined in {choppy} or base config file.
+	var outputTemplates = configData.template.split(TEMPLATE_MULTI_SEP);
 	
+	var splitProps = ['outputFilePath', 'outputTagStart', 'outputTagEnd'];
+	
+	
+	for (var s1 = 0; s1 < splitProps.length; s1++){
+		var splitPropName = splitProps[s1];
+		if (configData[splitPropName]){
+			configData[splitPropName] = configData[splitPropName].split(TEMPLATE_MULTI_SEP);
+			if (configData[splitPropName].length < outputTemplates.length){
+				for (var s2 = 0; s2 < outputTemplates.length; s2++){
+					if (s2 >= configData[splitPropName].length){
+						configData[splitPropName][s2] = configData[splitPropName][0];
+					}	
+				}
+			}
+		}
+	}
+	
+	
+	// These are declared here because they need to be accessed after the loop
+	// Track which parts you've added so you don't add stuff like '.header.' more than once
+	var output = [];
+	var templatePartsAdded = [];
+	for (var oct = 0; oct < outputTemplates.length; oct++){
+		output.push({});
+		templatePartsAdded.push({});
+	}
+	
+	
+	//stream.writeln('debug:lencheck a' + outputTemplates.length);
+	
+	//if (configData.outputFilePath){	
+	//	stream.writeln('debug:lencheck b' + configData.outputFilePath.length);
+	//}
+	//if (configData.outputTagStart){
+	//	stream.writeln('debug:lencheck c' + configData.outputTagStart.length);
+	//}
+	//if (configData.outputTagEnd){
+	//	stream.writeln('debug:lencheck d' + configData.outputTagEnd.length);
+	//}
+
+	//stream.writeln('debug:lencheck e' + output.length);
+	//stream.writeln('debug:lencheck f' + templatePartsAdded.length);
+
 	var p;
 	for (p = 0; p < outputData.length; p++){
 		
@@ -1207,86 +1312,165 @@ function processJSX(stream, props){
 			outputData[p].optimize = false;
 		}
 		
-		var templateFound = false;
 		
-		if (tplData[outputData[p].template] !== undefined){
-			for (var t = 0; t < TEMPLATE_PARTS.length; t++){			
-				var part = TEMPLATE_PARTS[t];
-				if (tplData[outputData[p].template][part] !== undefined){
-					if (output[part] === undefined){
-						output[part] = [];
-					} 
-					templateFound = true;
-					if (part == 'main'){
-						var mainData = applyVarObjToTemplateString(outputData[p], tplData[outputData[p].template][part], TEMPLATE_VAR_PRE, TEMPLATE_VAR_POST, outputData[p].outputValueFactor, OUTPUT_VALUE_FACTOR_PROPS, outputData[p].roundOutputValues);
-						if (tplData[outputData[p].template]['inter'] !== undefined && p > 0){
-							mainData = tplData[outputData[p].template]['inter'] + mainData;
-						}
-						output[part].push(mainData);
-					} else if (part != 'inter'){
-						// Only output once
-						var templatePartID = outputData[p].template + ':' + part;
-						if (!templatePartsAdded[templatePartID]){
-							var templateContent = tplData[outputData[p].template][part];
-							if (configData){
-								templateContent = applyVarObjToTemplateString(configData, templateContent, TEMPLATE_VAR_PRE, TEMPLATE_VAR_POST, 1, []);
+		//if (configData && configData.template){
+			
+		//
+			
+		//}
+		
+		
+		// OUTPUT MULTIPLE TEMPLATES
+		
+		// Split template into array if necessary
+		// 
+		
+	
+		// Convert template string to array
+		//if (templateIsRawString){
+		//	outputData[p].template = [outputData[p].template];
+		//} else {
+		//	outputData[p].template = outputData[p].template.split(TEMPLATE_MULTI_SEP);
+		//}	
+		
+		// |output| and |templatePartsAdded| are now arrays
+		// Ensure they have enough elements to hold each template
+		
+		//if (output.length < outputData[p].template.length){
+		//	for (var odp = 0; odp < outputData[p].template.length; odp++){
+		//		if (odp > output.length){
+		//			output.push({});
+		//		}
+		//	}
+		//}
+		
+		//if (templatePartsAdded.length < outputData[p].template.length){
+		//	for (var odp = 0; odp < outputData[p].template.length; odp++){
+		//		if (odp > templatePartsAdded.length){
+		//			templatePartsAdded.push({});
+		//		}
+		//	}
+		//}
+		
+		
+		//stream.writeln('debug: this ' + outputData[p].template);
+		//stream.writeln('debug: config' + configData.template);		
+		//return;
+		
+		
+		//outputTemplates
+		
+		//var compTemplateIsRawString = outputData[p].template.split(TEMPLATE_VAR_PRE).length > 1 && outputData[p].template.split(TEMPLATE_VAR_POST).length > 1;
+		// configTemplateIsRawString
+		// outputTemplates
+		
+		
+		// 
+		
+		var compTemplateSplit = outputData[p].template.split(TEMPLATE_MULTI_SEP);
+		if (compTemplateSplit.length != outputTemplates.length){
+			throw new Error('Layer comp template list must be same length as config comp');
+		}
+				
+		 
+		for (var ote = 0; ote < compTemplateSplit.length; ote++){
+		
+			var template = compTemplateSplit[ote]; // from config
+			var templateIsRawString = template.split(TEMPLATE_VAR_PRE).length > 1 && template.split(TEMPLATE_VAR_POST).length > 1;
+			
+			var templateFound = false;
+		
+			if (tplData[template] !== undefined){
+				for (var t = 0; t < TEMPLATE_PARTS.length; t++){			
+					var part = TEMPLATE_PARTS[t];
+					if (tplData[template][part] !== undefined){
+						if (output[ote][part] === undefined){
+							output[ote][part] = [];
+						} 
+						templateFound = true;
+						if (part == 'main'){
+							var mainData = applyVarObjToTemplateString(outputData[p], tplData[template][part], TEMPLATE_VAR_PRE, TEMPLATE_VAR_POST, outputData[p].outputValueFactor, OUTPUT_VALUE_FACTOR_PROPS, outputData[p].roundOutputValues);
+							if (tplData[template]['inter'] !== undefined && p > 0){
+								mainData = tplData[template]['inter'] + mainData;
 							}
-							output[part].push(templateContent);	
-							templatePartsAdded[templatePartID] = true;
+							output[ote][part].push(mainData);
+						} else if (part != 'inter'){
+							// Only output once
+							var templatePartID = template + ':' + part;
+							if (!templatePartsAdded[ote][templatePartID]){
+								var templateContent = tplData[template][part];
+								if (configData){
+									templateContent = applyVarObjToTemplateString(configData, templateContent, TEMPLATE_VAR_PRE, TEMPLATE_VAR_POST, 1, []);
+								}
+								output[ote][part].push(templateContent);	
+								templatePartsAdded[ote][templatePartID] = true;
+							}
 						}
 					}
 				}
 			}
+		
+			if (!templateFound && templateIsRawString){
+				if (output[ote]['main'] === undefined){
+					output[ote]['main'] = [];
+				}
+				output[ote]['main'].push(applyVarObjToTemplateString(outputData[p], template, TEMPLATE_VAR_PRE, TEMPLATE_VAR_POST, outputData[p].outputValueFactor, OUTPUT_VALUE_FACTOR_PROPS, outputData[p].roundOutputValues));
+			}
+		
 		}
 		
-		if (!templateFound && outputData[p].template.split(TEMPLATE_VAR_PRE).length > 1 && outputData[p].template.split(TEMPLATE_VAR_POST).length > 1){
-			if (output['main'] === undefined){
-				output['main'] = [];
-			}
-			output['main'].push(applyVarObjToTemplateString(outputData[p], outputData[p].template, TEMPLATE_VAR_PRE, TEMPLATE_VAR_POST, outputData[p].outputValueFactor, OUTPUT_VALUE_FACTOR_PROPS, outputData[p].roundOutputValues));
-		}
+		
 	}
 	
 	
 	// Revert doc
 	revertSnapshot(doc);
+	
+	var responseDataAll = [];
+	
+	// Loop templates	
 		
-	// Make output out of template data
-	var outputString = '';
-	for (var t = 0; t < TEMPLATE_PARTS.length; t++){	
-		if (output[TEMPLATE_PARTS[t]] !== undefined){
-			outputString += output[TEMPLATE_PARTS[t]].join('');
+	for (var ote = 0; ote < outputTemplates.length; ote++){
+		
+		// Make output out of template data
+		var outputString = '';
+		for (var t = 0; t < TEMPLATE_PARTS.length; t++){	
+			if (output[ote][TEMPLATE_PARTS[t]] !== undefined){
+				outputString += output[ote][TEMPLATE_PARTS[t]].join('');
+			}
 		}
-	}
 	
-	// Look for output file path
-	var outputFilePath = '';
-	var outputTags = {};
-	if (configData && configData.outputFilePath && configData.outputFilePath.length > 0){
-		configData.basePath = ensureDirPathHasTrailingSlash(configData.basePath, pathSep);
+		// Look for output file path
+		var outputFilePath = '';
+		var outputTags = {};
+		if (configData && configData.outputFilePath && configData.outputFilePath[ote].length > 0){
 		
-		// You can inject config props into this path
-		var injectedOutputFilePath = applyVarObjToTemplateString(configData, configData.outputFilePath, TEMPLATE_VAR_PRE, TEMPLATE_VAR_POST, 1, []);
+			configData.basePath = ensureDirPathHasTrailingSlash(configData.basePath, pathSep);
 		
-		outputFilePath = configData.basePath + injectedOutputFilePath; //configData.outputFilePath;
-		if (configData.outputTagStart && configData.outputTagEnd && configData.outputTagStart.length > 0 && configData.outputTagEnd.length > 0){
-			outputTags = {start:configData.outputTagStart, end:configData.outputTagEnd};
+			// You can inject config props into this path
+			var injectedOutputFilePath = applyVarObjToTemplateString(configData, configData.outputFilePath[ote], TEMPLATE_VAR_PRE, TEMPLATE_VAR_POST, 1, []);
+		
+			outputFilePath = configData.basePath + injectedOutputFilePath; //configData.outputFilePath;
+			if (configData.outputTagStart && configData.outputTagEnd && configData.outputTagStart[ote].length > 0 && configData.outputTagEnd[ote].length > 0){
+				outputTags = {start:configData.outputTagStart[ote], end:configData.outputTagEnd[ote]};
+			}
 		}
-	}
+		
+		
 	
-	
-	
-	
-	// Write response back to node
-	var responseData = {outputData: cleanupOutputDataForOutput(outputData,['layerCompRef']),
-											outputString: outputString,
-											outputFilePath: outputFilePath,
-											outputTags: outputTags}
+		// Write response back to node
+		var responseData = {outputData: cleanupOutputDataForOutput(outputData,['layerCompRef']),
+												outputString: outputString,
+												outputFilePath: outputFilePath,
+												outputTags: outputTags}
 								
-					
-												
+		
+		responseDataAll.push(responseData);
+		
+	}			
+											
 	stream.writeln(
-		JSON.stringify(responseData, null, 2)
+		JSON.stringify(responseDataAll, null, 2)
 	);
 	
 	// JSX functions
