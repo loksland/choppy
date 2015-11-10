@@ -27,6 +27,8 @@ node_modules
 # Users Environment Variables
 .lock-wscript
 
-*.jpg
-*.png
+examples/**/*.jpg
+examples/**/*.png
 Browser.command
+
+_nogit

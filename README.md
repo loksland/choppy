@@ -1,3 +1,5 @@
+![alt tag](/choppy-icon.png)
+
 Choppy
 ======
 
@@ -24,8 +26,8 @@ $ choppy
 
 An image called 'mypic.png' will be saved to the 'output/' directory.
 
-Why?
-----
+Advantages
+----------
 
 - Website images and game sprite assets can usually be broken up into separate psds that 
 follow logical groupings. Eg. "share-icons.psd", "player-sprites.psd".  
