@@ -1,8 +1,5 @@
 ![alt tag](/choppy-icon.png)
 
-Choppy
-======
-
 Choppy is a command line node script to perform image slicing and exporting from Photoshop 
 using layer comp configuration. It runs on the PSD currently open in Photoshop.
 
