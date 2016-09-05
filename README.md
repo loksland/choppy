@@ -368,6 +368,7 @@ Will find and replace matching string in layercomp names and comment fields.
 
 ### Release History ###
 
+- v1.7.0 - Updated dependencies
 - v1.6.8 - Documentation update
 - v1.6.8 - Multi template support,  
            |reverseOrder| {choppy} comp var  
