@@ -368,6 +368,10 @@ Will find and replace matching string in layercomp names and comment fields.
 
 ### Release History ###
 
+- v1.7.3 - Fixed typo in documentation
+- v1.7.2 - Extended AppleScript timeout in hardcoded dependency `photoshop` to 10 mins
+- v1.7.1 - Hard coded edit to possibly abandoned dependency `photoshop` v0.5.2 to include  
+           support for Photoshop 2017
 - v1.7.0 - Updated dependencies
 - v1.6.8 - Documentation update
 - v1.6.8 - Multi template support,  

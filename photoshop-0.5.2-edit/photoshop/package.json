@@ -1,0 +1,101 @@
+{
+  "_args": [
+    [
+      "photoshop",
+      "/Users/maker/Dropbox/OS/DELETE"
+    ]
+  ],
+  "_from": "photoshop@latest",
+  "_id": "photoshop@0.5.2",
+  "_inCache": true,
+  "_installable": true,
+  "_location": "/photoshop",
+  "_npmUser": {
+    "email": "thomas@subtlegradient.com",
+    "name": "subtlegradient"
+  },
+  "_npmVersion": "1.4.28",
+  "_phantomChildren": {},
+  "_requested": {
+    "name": "photoshop",
+    "raw": "photoshop",
+    "rawSpec": "",
+    "scope": null,
+    "spec": "latest",
+    "type": "tag"
+  },
+  "_requiredBy": [
+    "/"
+  ],
+  "_resolved": "https://registry.npmjs.org/photoshop/-/photoshop-0.5.2.tgz",
+  "_shasum": "240b8a62ef9ecddc828e567e697c4861353e66ef",
+  "_shrinkwrap": null,
+  "_spec": "photoshop",
+  "_where": "/Users/maker/Dropbox/OS/DELETE",
+  "author": {
+    "email": "oblivious@subtlegradient.com",
+    "name": "Thomas Aylott"
+  },
+  "bugs": {
+    "url": "https://github.com/subtleGradient/node-photoshop/issues"
+  },
+  "copyright": "2013 Facebook",
+  "dependencies": {
+    "jstransform": "^9.1",
+    "lockfile": "^0.3",
+    "readable-stream": "^1.0"
+  },
+  "description": "Control Adobe Photoshop and After Effects from Node.js",
+  "devDependencies": {
+    "JSONStream": "^0.10",
+    "concat-stream": "^1.4",
+    "tap": "^0.6"
+  },
+  "directories": {},
+  "dist": {
+    "shasum": "240b8a62ef9ecddc828e567e697c4861353e66ef",
+    "tarball": "https://registry.npmjs.org/photoshop/-/photoshop-0.5.2.tgz"
+  },
+  "gitHead": "6e47ca2d0ec7f658cb1bbb9ec6d7316b3949766f",
+  "homepage": "https://github.com/subtleGradient/node-photoshop",
+  "keywords": [
+    "adobe",
+    "photoshop",
+    "aftereffects",
+    "After Effects",
+    "graphics",
+    "layers",
+    "layout",
+    "image",
+    "filter",
+    "psd",
+    "aep",
+    "png",
+    "pdf",
+    "jsx",
+    "stream",
+    "stream2"
+  ],
+  "license": "MIT",
+  "main": "index.js",
+  "maintainers": [
+    {
+      "email": "thomas@subtlegradient.com",
+      "name": "subtlegradient"
+    }
+  ],
+  "name": "photoshop",
+  "optionalDependencies": {},
+  "os": [
+    "darwin"
+  ],
+  "readme": "ERROR: No README data found!",
+  "repository": {
+    "type": "git",
+    "url": "git://github.com/subtleGradient/node-photoshop.git"
+  },
+  "scripts": {
+    "test": "tap test/test-*.js"
+  },
+  "version": "0.5.2"
+}

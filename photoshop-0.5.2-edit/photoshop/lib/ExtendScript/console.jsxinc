@@ -1,0 +1,18 @@
+if (typeof JSON != 'object'){
+  #include "./vendor/json2.js"
+}
+
+if (typeof this.console != 'object'){
+  this.console = {
+    log: function(){
+      Array.prototype.slice.call(arguments).forEach(function(arg){
+        $.write.call($, JSON.stringify(arg))
+        $.write('\t')
+      })
+      $.writeln()
+    },
+    assert: function(True, message){
+      if (!True) throw Error(message)
+    },
+  }
+}

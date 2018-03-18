@@ -1,6 +1,6 @@
 #! /usr/bin/env node
 
-var photoshop = require('photoshop');
+var photoshop = require('./photoshop-0.5.2-edit/photoshop');
 var fs = require('fs'); 	
 var path = require('path'); 
 var spawn = require('child_process').spawn;
