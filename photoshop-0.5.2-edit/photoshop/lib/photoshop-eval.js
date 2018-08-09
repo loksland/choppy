@@ -23,7 +23,8 @@ evalInPhotoshop.getName = function(){
   if (evalInPhotoshop.NAME == null) {
     try {
       ;(function(error, Applications){
-        if (Applications.indexOf('Adobe Photoshop CC 2017') != -1) evalInPhotoshop.NAME = "Adobe Photoshop CC 2017"; // LMN
+      	if (Applications.indexOf('Adobe Photoshop CC 2018') != -1) evalInPhotoshop.NAME = "Adobe Photoshop CC 2018"; // LMN
+        else if (Applications.indexOf('Adobe Photoshop CC 2017') != -1) evalInPhotoshop.NAME = "Adobe Photoshop CC 2017"; // LMN
         else if (Applications.indexOf('Adobe Photoshop CC 2015') != -1) evalInPhotoshop.NAME = "Adobe Photoshop CC 2015";
         else if (Applications.indexOf('Adobe Photoshop CC 2014') != -1) evalInPhotoshop.NAME = "Adobe Photoshop CC 2014";
         else if (Applications.indexOf('Adobe Photoshop CC') != -1) evalInPhotoshop.NAME = "Adobe Photoshop CC";

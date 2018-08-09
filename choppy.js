@@ -1,22 +1,22 @@
 #! /usr/bin/env node
 
 var photoshop = require('./photoshop-0.5.2-edit/photoshop');
-var fs = require('fs'); 	
-var path = require('path'); 
+var fs = require('fs');
+var path = require('path');
 var spawn = require('child_process').spawn;
 
 var Choppy = function() {
-	
-	this.TEMPLATE_DIR_NAME = 'tpl';	
+
+	this.TEMPLATE_DIR_NAME = 'tpl';
 	this.CONFIG_FILENAME = '.choppy';
-	this.TEMPLATE_PARTS = ['header', 'main', 'inter', 'footer']; 
-	
-	// Get the template data from core	
+	this.TEMPLATE_PARTS = ['header', 'main', 'inter', 'footer'];
+
+	// Get the template data from core
 	this.templateFiles = [];
 	this.templateFilesCore = [];
 	var coreTemplateDirPath = __dirname + path.sep + this.TEMPLATE_DIR_NAME + path.sep;
 	Choppy.addFilePathsInDirToArray(coreTemplateDirPath, this.templateFilesCore);
-	
+
 	// Get arg
 	this.dryRun = false;
 	this.outputSelected = false;
@@ -26,11 +26,12 @@ var Choppy = function() {
 	this.makecomps = false;
 	this.findandreplace = false;
 	this.findandreplaceProps = {find:null, replace:null}
-	var argv = require('minimist')(process.argv.slice(2));
-	
+
+	var argv = {_:process.argv.slice(2)}; //require('minimist')(process.argv.slice(2));
+
 	for (var k = 0; k < argv._.length; k++){
 		if (String(argv._[k]).toLowerCase() === 'dry'){
-			this.dryRun = true;			
+			this.dryRun = true;
 		} else if (String(argv._[k]).toLowerCase() === 'sel'){
 			this.outputSelected = true;
 		} else if (String(argv._[k]).toLowerCase() === 'verbose'){
@@ -45,6 +46,8 @@ var Choppy = function() {
 			if (k+1 <= argv._.length-1 && k+2 <= argv._.length-1){
 				this.findandreplace = true;
 				this.findandreplaceProps = {find:String(argv._[k+1]),replace:String(argv._[k+2])};
+			} else {
+				throw new Error('Invalid find and replace args');
 			}
 		}
 	}
@@ -53,12 +56,12 @@ var Choppy = function() {
 	//if (psdPaths.length === 0){
 	//	psdPaths = ['{active}'];
 	//}
-	//for (var ddd = 0; ddd < psdPaths.length; ddd++){	
+	//for (var ddd = 0; ddd < psdPaths.length; ddd++){
 	//}
-	
+
 	this.psdIndex = -1;
 	this.processNext();
-	
+
 };
 
 Choppy.simpleArrDupe = function(arr){
@@ -69,23 +72,23 @@ Choppy.simpleArrDupe = function(arr){
 	return dupe;
 }
 
-Choppy.prototype.onPsdDone = function() { 
+Choppy.prototype.onPsdDone = function() {
 	this.processNext();
 }
 
-Choppy.prototype.processNext = function() { 
-	
+Choppy.prototype.processNext = function() {
+
 	this.psdIndex++;
 	var targetPsdPath = this.psdPaths[this.psdIndex];
-	
+
 	var activeMode;
-	if (this.psdPaths.length == 0){		
+	if (this.psdPaths.length == 0){
 		activeMode = true;
 		if (this.psdIndex == 1){
 			return;
 		}
 	} else {
-	
+
 		activeMode = false;
 		if (targetPsdPath == null){
 			//console.log('Processed ' + this.psdPaths.length + ' docs');
@@ -96,39 +99,39 @@ Choppy.prototype.processNext = function() {
 			// Know it's an absolute path
 		} else {
 			// Attempt relative
-			targetPsdPath = process.cwd() + path.sep + targetPsdPath;			
+			targetPsdPath = process.cwd() + path.sep + targetPsdPath;
 			if (!fs.existsSync(targetPsdPath)){
 				// Fallback to abs
 				targetPsdPath = pathSource;
 			}
 		}
 	}
-	
+
 	var psdLabel = !activeMode ? path.basename(targetPsdPath) : 'Active document';
 	console.log('\nPSD ' + String(this.psdIndex + 1) + '/' + (activeMode ? '1' : this.psdPaths.length) + ' '+psdLabel+' ...');
-	
+
 	var self = this;
-	
+
 	// Get the active doc.
 	photoshop.invoke(ensurePsdIsActiveDocumentJSX, [targetPsdPath, path.sep], function(error, activeDocument){
-		
+
 		var responseBuffer = '';
-		
+
 		if (self.findandreplace){
 
 			console.log('Finding "'+self.findandreplaceProps.find+'" and replacing with "'+self.findandreplaceProps.replace+'" in layer comp names and comments...');
-			
-			photoshop.createStream(processJSX, {pathSep:path.sep, outputSelected:self.outputSelected, findandreplace:self.findandreplace, findandreplaceProps:self.findandreplaceProps}).on('data', function(data) { 
-		
+
+			photoshop.createStream(processJSX, {pathSep:path.sep, outputSelected:self.outputSelected, findandreplace:self.findandreplace, findandreplaceProps:self.findandreplaceProps}).on('data', function(data) {
+
 				var dataStr = data.toString();
 				if (dataStr.substr(0,6) === 'debug:'){
 					console.log(dataStr.substr(6));
 				} else {
 					responseBuffer += dataStr;
 				}
-		
+
 			}).on('end', function() {
-				
+
 				var responseData;
 				try {
 					responseData = JSON.parse(responseBuffer);
@@ -136,19 +139,19 @@ Choppy.prototype.processNext = function() {
 					console.log(responseBuffer.toString());
 					return;
 				}
-				
+
 				console.log(responseData.msg);
-				
+
 				self.onPsdDone();
-		
+
 			});
-			
+
 			return;
-		} 
-		
-		
+		}
+
+
 		if (self.flatten || self.makecomps){
-			
+
 			if (self.flatten){
 				console.log('Flattening'+(self.outputSelected ? ' selected layers' : '')+'...');
 			}
@@ -159,17 +162,17 @@ Choppy.prototype.processNext = function() {
 					console.log('Making a comp for each top-level layer using 1st layer comp as guide...');
 				}
 			}
-			photoshop.createStream(processJSX, {flatten: self.flatten, pathSep:path.sep, makecomps:self.makecomps, outputSelected:self.outputSelected}).on('data', function(data) { 
-		
+			photoshop.createStream(processJSX, {flatten: self.flatten, pathSep:path.sep, makecomps:self.makecomps, outputSelected:self.outputSelected}).on('data', function(data) {
+
 				var dataStr = data.toString();
 				if (dataStr.substr(0,6) === 'debug:'){
 					console.log(dataStr.substr(6));
 				} else {
 					responseBuffer += dataStr;
 				}
-		
+
 			}).on('end', function() {
-				
+
 				var responseData;
 				try {
 					responseData = JSON.parse(responseBuffer);
@@ -177,24 +180,24 @@ Choppy.prototype.processNext = function() {
 					console.log(responseBuffer.toString());
 					return;
 				}
-				
+
 				console.log(responseData.msg);
-				
+
 				self.onPsdDone();
-		
+
 			});
-			
+
 			return;
-		} 
-		
-		
+		}
+
+
 		var psdContainingDir = Choppy.ensureDirPathHasTrailingSlash(activeDocument.path, path.sep);
 		var baseConfigData = {};
-		
+
 		// Check for config
 		var configFilePath = psdContainingDir + self.CONFIG_FILENAME;
-		
-		if (fs.existsSync(configFilePath)) {			
+
+		if (fs.existsSync(configFilePath)) {
 				baseConfigData = JSON.parse(fs.readFileSync(configFilePath, 'utf8'));
 				if (baseConfigData.basePath && baseConfigData.basePath.length > 0){
 					baseConfigData.basePath = Choppy.ensureDirPathHasTrailingSlash(baseConfigData.basePath, path.sep);
@@ -202,30 +205,30 @@ Choppy.prototype.processNext = function() {
 		}	 else {
 				baseConfigData = {};
 		}
-		
+
 		//stream.writeln('debug:que?' + baseConfigData.basePath);
-		
-		
+
+
 		// Check for templates
 		self.templateFiles = Choppy.simpleArrDupe(self.templateFilesCore);
 		var localTemplateDirPath = psdContainingDir + self.TEMPLATE_DIR_NAME + path.sep;
 		if (fs.existsSync(localTemplateDirPath)) {
 			Choppy.addFilePathsInDirToArray(localTemplateDirPath, self.templateFiles);
 		}
-	
+
 		var tplData = self.getTemplateDataFromFiles(self.templateFiles);
-	
+
 		var processStream = photoshop.createStream(processJSX, {tplData:tplData, pathSep:path.sep, baseConfigData:baseConfigData, TEMPLATE_PARTS:self.TEMPLATE_PARTS, dryRun:self.dryRun, outputSelected:self.outputSelected}).on('data', function(data) {
-		
+
 			var dataStr = data.toString();
 			if (dataStr.substr(0,6) === 'debug:'){
 				console.log(dataStr.substr(6));
 			} else {
 				responseBuffer += dataStr;
 			}
-		
+
 		}).on('end', function() {
-		
+
 			var responseData;
 			try {
 				responseData = JSON.parse(responseBuffer);
@@ -233,68 +236,68 @@ Choppy.prototype.processNext = function() {
 				console.log(responseBuffer.toString());
 				return;
 			}
-			
+
 			if (!responseData.push){
-				responseData = [responseData];			
+				responseData = [responseData];
 			}
-			
-			
+
+
 			var responseDataArr = responseData;
-			
-			
+
+
 			for (var rd = 0; rd < responseDataArr.length; rd++){
-			
+
 				responseData = responseDataArr[rd];
-				
+
 				//console.log(responseData);
 				//return;
-				
+
 				if (self.verbose){
 					console.log(JSON.stringify(responseData.outputData, null, 2));
 				}
 				console.log('\n' + responseData.outputString + '\n');
-			
+
 				if (responseData.outputFilePath && responseData.outputFilePath.length > 0){
-			
+
 					var outputFileContents = responseData.outputString;
-			
+
 					if (responseData.outputTags && responseData.outputTags.start && responseData.outputTags.end && responseData.outputTags.start.length > 0 && responseData.outputTags.end.length > 0){
-						
-						
+
+
 						for (var ps = 0; ps < 2; ps++){
-						
+
 							var existingContents = fs.readFileSync(psdContainingDir + responseData.outputFilePath, 'utf8');
 							var searchPattern = new RegExp(responseData.outputTags.start.replace(/[-/\\^$*+?.()|[\]{}]/g, '\\$&') + '(.|[\r\n])*' + responseData.outputTags.end.replace(/[-/\\^$*+?.()|[\]{}]/g, '\\$&'), 'gi');
 							outputFileContents = existingContents.replace(searchPattern, responseData.outputTags.start+responseData.outputString+responseData.outputTags.end);
 							var tagMatch = existingContents.match(searchPattern);
-						
+
 							if (tagMatch === null){
 								if (ps == 1){
 									throw new Error('Output tags not found.');
 								} else {
-								
+
 									responseData.outputTags.start = responseData.outputTags.start.split('\\-').join('-');
-									responseData.outputTags.end = responseData.outputTags.end.split('\\-').join('-');						
-									
-									//console.log(responseData.outputTags.start);												
+									responseData.outputTags.end = responseData.outputTags.end.split('\\-').join('-');
+
+									//console.log(responseData.outputTags.start);
 								}
 							} else {
 								console.log('Found tags: "'+responseData.outputTags.start+'" and "'+responseData.outputTags.end+'".\n');
 								break;
 							}
-						
+
 						}
-						
+
 					}
-			
+
 					fs.writeFileSync(psdContainingDir + responseData.outputFilePath, outputFileContents);
 					console.log('Wrote to ' + responseData.outputFilePath + '\n');
-			
+
 				}
-			
-			
+
+
 				// Optimize (on last loop)
-				
+
 				if (rd == responseDataArr.length - 1){ // Last loop only
 					if (!self.dryRun){
 						// Optimize using imageoptim-cli
@@ -302,9 +305,9 @@ Choppy.prototype.processNext = function() {
 						for (var j = 0; j < responseData.outputData.length; j++){
 							if (responseData.outputData[j].optimize){
 							  var optPath = psdContainingDir + responseData.outputData[j].basePath + responseData.outputData[j].src;
-							  
+
 							  //optPath = optPath.split('/./').join(path.sep); // Remove these as they break the optimization program
-								optimizeFilePaths.push(optPath); 
+								optimizeFilePaths.push(optPath);
 							}
 						}
 						if (optimizeFilePaths.length > 0){
@@ -313,13 +316,13 @@ Choppy.prototype.processNext = function() {
 								console.log('Cannot optimize on non-Mac systems. See https://github.com/JamieMason/ImageOptim-CLI for more info.');
 								self.onPsdDone();
 							} else {
-		
+
 								var imageoptimFilePath = require.resolve('imageoptim-cli');
-		
+
 								console.log('Optimizing...\n');
 								var optimize = spawn('sh', [__dirname + path.sep + 'optimize.sh', imageoptimFilePath, optimizeFilePaths.join('\n')]);
 
-								optimize.stdout.on('data', function (data) {  
+								optimize.stdout.on('data', function (data) {
 									console.log(data.toString());
 								});
 
@@ -335,54 +338,54 @@ Choppy.prototype.processNext = function() {
 								});
 							}
 						} else {
-							self.onPsdDone();					
+							self.onPsdDone();
 						}
 					} else {
-						self.onPsdDone();					
+						self.onPsdDone();
 					}
 				}
-			
+
 			}
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-			
-		});		
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+		});
 	});
 
 }
 
 // Given an array of template filepaths, build a data object.
 Choppy.prototype.getTemplateDataFromFiles = function(filePathArr) {
-	
+
 	var tplData = {};
 	for (var k = 0; k < filePathArr.length; k++){
-		
+
 		var tplFilePath = filePathArr[k];
 		var tplFileName = path.basename(tplFilePath);
-		
+
 		var stats = fs.statSync(tplFilePath);
 		if (!stats.isDirectory()){
-			var tplBaseName = path.basename(tplFilePath, path.extname(tplFilePath));					
-			
-			if (tplBaseName.charAt(0) !== '.'){				
-				var contents = fs.readFileSync(tplFilePath, 'utf8');				
+			var tplBaseName = path.basename(tplFilePath, path.extname(tplFilePath));
+
+			if (tplBaseName.charAt(0) !== '.'){
+				var contents = fs.readFileSync(tplFilePath, 'utf8');
 				var part = 'main';
 				if (tplBaseName.split('.').length !== 1){
 					for (var i = 0; i < this.TEMPLATE_PARTS.length; i++){
-						if (this.TEMPLATE_PARTS[i] !== 'main' && (tplBaseName + '.').split('.'+this.TEMPLATE_PARTS[i] + '.').length === 2){							
+						if (this.TEMPLATE_PARTS[i] !== 'main' && (tplBaseName + '.').split('.'+this.TEMPLATE_PARTS[i] + '.').length === 2){
 							tplBaseName = (tplBaseName + '.').split('.'+this.TEMPLATE_PARTS[i] + '.').join('');
 							part = this.TEMPLATE_PARTS[i];
 							break;
@@ -392,7 +395,7 @@ Choppy.prototype.getTemplateDataFromFiles = function(filePathArr) {
 				if (!tplData[tplBaseName]){
 					tplData[tplBaseName] = {};
 				}
-				
+
 				if (!tplData[tplBaseName][part]){
 					tplData[tplBaseName][part] = contents;
 				} else {
@@ -401,16 +404,16 @@ Choppy.prototype.getTemplateDataFromFiles = function(filePathArr) {
 			}
 		}
 	}
-	
+
 	// Check every template has a 'main' part.
 	for (var p in tplData){
 		if (!tplData[p].main){
 			throw new Error('Template missing a main part');
 		}
 	}
-	
+
 	return tplData;
-	
+
 };
 
 // Add file paths within dir path to an existing array.
@@ -425,15 +428,15 @@ Choppy.addFilePathsInDirToArray = function(dirPath, array) {
 };
 
 // Make sure there's a trailing slash on a dir path.
-Choppy.ensureDirPathHasTrailingSlash = function(path, sep){	
+Choppy.ensureDirPathHasTrailingSlash = function(path, sep){
 	path = String(path);
 	if (path.charAt(path.length - 1) !== sep){
-		path = path + sep;			
+		path = path + sep;
 	}
-	return path;		
+	return path;
 };
 
-// JSX 
+// JSX
 // ---
 
 function ensurePsdIsActiveDocumentJSX(targetPath, sep){
@@ -448,11 +451,11 @@ function ensurePsdIsActiveDocumentJSX(targetPath, sep){
 		} catch(e){
 			activeDoc = null;
 		}
-		if (activeDoc){	
+		if (activeDoc){
 			var active = new File(app.activeDocument.path + sep + app.activeDocument.name);
 			// Path already open
 			if (target.absoluteURI === active.absoluteURI){
-				return {path : app.activeDocument.path}; 	
+				return {path : app.activeDocument.path};
 			}
 			// Is doc in another tab?
 			if (app.documents.length > 1){
@@ -460,24 +463,24 @@ function ensurePsdIsActiveDocumentJSX(targetPath, sep){
 					app.activeDocument = app.documents[i];
 					var active = new File(app.activeDocument.path + sep + app.activeDocument.name);
 					if (target.absoluteURI === active.absoluteURI){
-						return {path : app.activeDocument.path}; 	
+						return {path : app.activeDocument.path};
 					}
 				}
 			}
-		} 
+		}
 		// Open the doc
 		app.open(target);
 		return {path : app.activeDocument.path};
-	}	
+	}
   /* jshint ignore:end */
 }
 
 function processJSX(stream, props){
 	/* jshint ignore:start */
-	
+
 	// If a layer comp or layer starts with this char then they will not be included in operatios
 	var IGNORE_PREFIX_CHARS = {'`':true};
-	
+
 	var flatten = props.flatten;
 	var makecomps = props.makecomps;
 	var utilMsg = '\n';
@@ -487,61 +490,61 @@ function processJSX(stream, props){
 	if (makecomps || flatten){
 		selLayerLookup = getSelectedLayerLookup();
 	}
-	
+
 	var findandreplace = props.findandreplace ;
 	var findandreplaceProps = props.findandreplaceProps;
-	
+
 	if (findandreplace && findandreplaceProps){
 		var find = findandreplaceProps.find;
 		var replace = findandreplaceProps.replace;
-		for (var i =0; i < doc.layerComps.length; i++){		
+		for (var i =0; i < doc.layerComps.length; i++){
 			var lyrcmp = doc.layerComps[i];
 			lyrcmp.name = String(lyrcmp.name).split(find).join(replace);
 			if (lyrcmp.comment){
 				lyrcmp.comment = String(lyrcmp.comment).split(find).join(replace);
 			}
 		}
-		
+
 		return;
-		
+
 	}
-	
+
 	// var isSel = isLayerSelected(layerRef, selLayerLookup);
 	if (flatten){
-		
+
 		var flattenResult = flattenTopLevelLayers(doc, false, outputSelected, selLayerLookup, IGNORE_PREFIX_CHARS);
-		
+
 		utilMsg+= 'Flattened ' + String(flattenResult.flattenedLayers) + ' layers out of ' + String(flattenResult.totalLayers) + ' total.';
-		
+
 		if (!makecomps) {
 			// If not hanging on to make comps then bail
 			stream.writeln(
 				JSON.stringify({msg: utilMsg}, null, 2)
 			);
 			return;
-		
+
 		}
 	}
-	
+
 	// Set args
 	var tplData = props.tplData;
 	var pathSep = props.pathSep;
 	var baseConfigData = props.baseConfigData;
 	var TEMPLATE_PARTS = props.TEMPLATE_PARTS;
 	var dryRun = props.dryRun;
-	
+
 	//stream.writeln('debug:var tplData=' + JSON.stringify(tplData) +';');
 	//stream.writeln('debug:var pathSep=' + JSON.stringify(pathSep) +';');
 	//stream.writeln('debug:var baseConfigData=' + JSON.stringify(baseConfigData) +';');
 	//stream.writeln('debug:var TEMPLATE_PARTS=' + JSON.stringify(TEMPLATE_PARTS) +';');
 	//stream.writeln('debug:var dryRun=' + JSON.stringify(dryRun) +';');
 	//stream.writeln('debug:var outputSelected=' + JSON.stringify(outputSelected) +';');
-	
+
 	// The default image prop fallbacks.
-	
+
 	var PROP_DEFAULTS = {alt: '', cropToBounds: false, template: 'img', ext: 'jpg', quality: 80, flipX: false, flipY: false, relativePath: './', basePath: './', matte:null, colors:256, optimize:false, scale:1, sizeFileHandle:'', sizeIndex:-1, sizes:null, reg: 'TL', outputValueFactor: 1, regX:0, regY:0, regPercX:0, regPercY:0, forceW:-1, forceH:-1, roundOutputValues:false, boundsComp:'', outputOriginX: 0, outputOriginY: 0, outputOriginLayer:null, placeholder:false, reverseOrder: false, tlX:0, tlY:0};
 	// Which props are affected by |outputValueFactor|
-	var OUTPUT_VALUE_FACTOR_PROPS = ['width','height','x','y','regX','regY', 'tlX', 'tlY']; 	
+	var OUTPUT_VALUE_FACTOR_PROPS = ['width','height','x','y','regX','regY', 'tlX', 'tlY'];
 	var BOOL_PROPS = ['cropToBounds', 'flipX', 'flipY', 'optimize', 'roundOutputValues', 'placeholder', 'reverseOrder'];
 	var NUM_PROPS = ['quality','scale','forceW','forceH', 'outputOriginX', 'outputOriginX', 'tlX', 'tlY'];
 	var NEWLINE_PROPS = ['template'];
@@ -559,40 +562,40 @@ function processJSX(stream, props){
 	var REG_LAYER_NAME = '{reg}';
 	var BOUNDS_COMP_NEXT_KEYWORD = '{next}'
 	var BOUNDS_COMP_PREV_KEYWORD = '{prev}'
-	
-	
+
+
 	// Get psd info
-	
+
 	var psdContainingDir = ensureDirPathHasTrailingSlash(doc.path, pathSep);
 	var psdName = doc.name;
 	var psdFullName = doc.fullName;
 	var psdBounds = new Array(0,0,doc.width.value,doc.height.value);
-	
+
 	// Assuming doc has an extension
-	
-	var psdNameParts = psdName.split('.');	
+
+	var psdNameParts = psdName.split('.');
 	psdNameParts.splice(psdNameParts.length - 1, 1);
 	var psdBase = psdNameParts.join('.');
-	PROP_DEFAULTS['psdBase'] = psdBase;	
+	PROP_DEFAULTS['psdBase'] = psdBase;
 
 	if (!doc){
 		throw new Error('No PSD document open.')
 	}
-	
-	
-	
+
+
+
 	var configData = null;
 	var outputData = [];
-	
+
 	var makecompsGuideComp = null;
-	
+
 	var compNameCheck = {}
 	var dupeCompNamesPresent = false;
 	for (var i =0; i < doc.layerComps.length; i++){
-		
+
 		var layerComp = doc.layerComps[i];
 		if (dupeCompNamesPresent){
-			// Do nothing		
+			// Do nothing
 		} else if (compNameCheck[layerComp.name]){
 			dupeCompNamesPresent = true;
 		} else {
@@ -600,7 +603,7 @@ function processJSX(stream, props){
 		}
 		var compData = {};
 		var totalProps = 0;
-		
+
 		compData._nextLayerCompName = '';
 		if (i > 0){
 			compData._prevLayerCompName = doc.layerComps[i-1].name;
@@ -608,24 +611,24 @@ function processJSX(stream, props){
 		if (i < doc.layerComps.length-1){
 			compData._nextLayerCompName = doc.layerComps[i+1].name;
 		}
-		
+
 		if (!IGNORE_PREFIX_CHARS[layerComp.name.charAt(0)]){
-		
+
 			// Parse comment vars
 			if (layerComp.comment){
-			
+
 				var arr = layerComp.comment.split('\n');
 				for (var j = 0; j < arr.length; j++){
 					var chunk = arr[j];
 					var chunkArr = chunk.split(':');
 					if (chunkArr.length > 1){
-					
+
 						var varName = chunkArr[0].split(' ').join('');
 						chunkArr.splice(0,1);
-						var varVal = chunkArr.join(':');				
+						var varVal = chunkArr.join(':');
 						while(varVal.charAt(0) === ' '){
 							varVal = varVal.substr(1);
-						}								
+						}
 						// Boolean
 						if (BOOL_PROPS.indexOf(varName) >= 0){
 							var tmpVarVal = varVal.toLowerCase(0);
@@ -642,18 +645,18 @@ function processJSX(stream, props){
 							varVal =  String(varVal).split('\\n').join('\n');
 							varVal =  String(varVal).split('\\t').join('\t');
 						}
-						
+
 						compData[varName] = varVal;
 						totalProps++;
 					}
 				}
 			}
-		
+
 			// Default prop-less comment to alt text
 			if (totalProps == 0){
 				compData = {alt: layerComp.comment};
 			}
-		
+
 			// Detect extension in filename and overwrite 'ext' prop if it is valud
 			var outputNameExt = getExt(layerComp.name).toLowerCase();
 			var outputNameExtOK = false;
@@ -669,46 +672,46 @@ function processJSX(stream, props){
 			} else {
 				compData['base'] = getFileBaseName(layerComp.name, '');
 			}
-		
+
 			compData.layerCompRef = layerComp;
-		
+
 			if (layerComp.name === CONFIG_LAYERCOMP_NAME){
 				delete compData['base'];
 				configData = compData;
-			
+
 			} else {
-		
+
 				compData.selected = layerComp.selected;
-				
+
 				// Override relative path if defined in layer comp name.
 				var layerCompRelativePath = getContainingDirPath(layerComp.name, pathSep);
-				if (layerCompRelativePath && layerCompRelativePath.length > 0){		
+				if (layerCompRelativePath && layerCompRelativePath.length > 0){
 					compData['relativePath'] = ensureDirPathHasTrailingSlash(getContainingDirPath(layerComp.name, pathSep), pathSep);
 				}
-			
-				if (makecomps){ 			
+
+				if (makecomps){
 					if (makecompsGuideComp == null || (outputSelected && layerComp.selected)){
 						makecompsGuideComp = compData; // Use first at least
 					}
 					if (!outputSelected || layerComp.selected){
-						break;	
-					}							
+						break;
+					}
 				} else {
 					outputData.push(compData);
 				}
-			
+
 			}
-		}	
+		}
 	}
-	
-	
-	
-	
+
+
+
+
 	// Make comps utility command
 	// Waited for first layer comp to process data, as we will base all new comps
 	// on |ext| and |relativePath| of this comp
 	if (makecomps){
-		
+
 		var ext = '';
 		var relativePath = '';
 		var comment = '';
@@ -716,68 +719,68 @@ function processJSX(stream, props){
 		var position = true
 		var visibility = true;
 		if (makecompsGuideComp != null){
-		
+
 			utilMsg += 'Using "'+makecompsGuideComp.layerCompRef.name+'" as a guide for config\n';
-			
+
 			ext = makecompsGuideComp.ext ? makecompsGuideComp.ext : '';
 			relativePath = makecompsGuideComp.relativePath ? makecompsGuideComp.relativePath : '';
 			comment = makecompsGuideComp.layerCompRef.comment ? makecompsGuideComp.layerCompRef.comment : '';
 			appearance = makecompsGuideComp.layerCompRef.appearance;
 			position = makecompsGuideComp.layerCompRef.position;
 			visibility = makecompsGuideComp.layerCompRef.visibility;
-			
+
 		}
-		
+
 		if (ext.length > 0 && ext.charAt(0) != '.'){
 			ext = '.' + ext;
 		}
-		
+
 		for (var i = 0 ; i < doc.layers.length; i++){
 			var layer = doc.layers[i];
 			layer.visible = false;
 		}
-		
+
 		var totalNewComps = 0;
 		for (var i = 0 ; i < doc.layers.length; i++){
 			var layer = doc.layers[i];
 			if (!IGNORE_PREFIX_CHARS[layer.name.charAt(0)]){
-			
+
 				if (!outputSelected || isLayerSelected(layer, selLayerLookup)){
-			
+
 					layer.visible = true;
-				
+
 					var layerCompName = relativePath + layer.name + ext;
 					// http://jongware.mit.edu/pscs5js_html/psjscs5/pc_LayerComps.html
-					// LayerComp add (name: string[, comment: string][, appearance: bool=false][, position: bool=false][, visibility: bool=true])		 
+					// LayerComp add (name: string[, comment: string][, appearance: bool=false][, position: bool=false][, visibility: bool=true])
 					doc.layerComps.add(layerCompName, comment, appearance, position, visibility);
-				
+
 					utilMsg+= '- "' + layerCompName + '"'
 					utilMsg+= '\n';
-					layer.visible = false;		
-				
-					totalNewComps++;		
-				
+					layer.visible = false;
+
+					totalNewComps++;
+
 				}
 			}
 		}
-		
+
 		utilMsg += '\nMade ' + String(totalNewComps) + ' layer comps.\n';
-		
+
 		// Write response back to node
 
 		stream.writeln(
 			JSON.stringify({msg: utilMsg}, null, 2)
 		);
 		return;
-		
+
 	}
-	
-	
-	
-	
-	
+
+
+
+
+
 	takeSnapshot();
-	
+
 	// Extend config data
 	if (configData === null){
 		configData = extendObjWithDefaults({}, CONFIG_PROP_DEFAULTS);
@@ -786,18 +789,18 @@ function processJSX(stream, props){
 	}
 	// Apply defaults to config so they can extend each output img.
 	configData = extendObjWithDefaults(configData, PROP_DEFAULTS);
-	
-	// Flip order of output 
+
+	// Flip order of output
 	if (configData.reverseOrder){
 		outputData.reverse();
 	}
-	
+
 	// The number of templates must be defined in {choppy} or base config file.
 	var outputTemplates = configData.template.split(TEMPLATE_MULTI_SEP);
-	
+
 	var splitProps = ['outputFilePath', 'outputTagStart', 'outputTagEnd'];
-	
-	
+
+
 	for (var s1 = 0; s1 < splitProps.length; s1++){
 		var splitPropName = splitProps[s1];
 		if (configData[splitPropName]){
@@ -806,13 +809,13 @@ function processJSX(stream, props){
 				for (var s2 = 0; s2 < outputTemplates.length; s2++){
 					if (s2 >= configData[splitPropName].length){
 						configData[splitPropName][s2] = configData[splitPropName][0];
-					}	
+					}
 				}
 			}
 		}
 	}
-	
-	
+
+
 	// These are declared here because they need to be accessed after the loop
 	// Track which parts you've added so you don't add stuff like '.header.' more than once
 	var output = [];
@@ -821,11 +824,11 @@ function processJSX(stream, props){
 		output.push({});
 		templatePartsAdded.push({});
 	}
-	
-	
+
+
 	//stream.writeln('debug:lencheck a' + outputTemplates.length);
-	
-	//if (configData.outputFilePath){	
+
+	//if (configData.outputFilePath){
 	//	stream.writeln('debug:lencheck b' + configData.outputFilePath.length);
 	//}
 	//if (configData.outputTagStart){
@@ -840,26 +843,26 @@ function processJSX(stream, props){
 
 	var p;
 	for (p = 0; p < outputData.length; p++){
-		
+
 		outputData[p] = extendObjWithDefaults(outputData[p], configData);
 		// Enforce own "!" props.
 		outputData[p] = extendObjWithDefaults(outputData[p], outputData[p]);
-		
+
 		// Look for multiple sizes and create new virtual layerComps for these
 		if (outputData[p].sizes) {
-			
+
 			// Look for size definitions
 			var sizeLookup = {};
 			var ppp;
-			for (ppp in outputData[p]){		
-				var pppOrig = ppp;		
+			for (ppp in outputData[p]){
+				var pppOrig = ppp;
 				ppp = ppp.toLowerCase();
 				if (ppp.length > 7 && ppp.substr(0,7) === 'sizedef'){
 					var sizeKey = ppp.substr(7);
-					sizeLookup[sizeKey] = outputData[p][pppOrig];					
+					sizeLookup[sizeKey] = outputData[p][pppOrig];
 				}
 			}
-			
+
 			// Look for sizeDefs that reference other size defs
 			var sizeDefsDefined = {};
 			var iii = 0;
@@ -869,8 +872,8 @@ function processJSX(stream, props){
 				for (ppp in sizeLookup){
 					if (!sizeDefsDefined[ppp]){
 						anyUndef = true;
-						var arrSizesInDef = sizeLookup[ppp].split(',');			
-						var arrAltered = false;	
+						var arrSizesInDef = sizeLookup[ppp].split(',');
+						var arrAltered = false;
 						var totUndefProps = 0;
 						for (var ii = 0; ii < arrSizesInDef.length; ii++){
 							if (arrSizesInDef[ii].split(':').length === 1){
@@ -883,82 +886,82 @@ function processJSX(stream, props){
 									break;
 								}
 							}
-						}				
+						}
 						if (totUndefProps === 0 || arrAltered){
 							sizeLookup[ppp] = arrSizesInDef.join(',');
 							sizeDefsDefined[ppp] = true;
 						}
 					}
 				}
-				iii++;	
+				iii++;
 			}
-			
+
 			var tmpVarValArr = String(outputData[p].sizes).split(',');
 			outputData[p].sizes = [];
-			for (var pp = 0; pp < tmpVarValArr.length; pp++){						
+			for (var pp = 0; pp < tmpVarValArr.length; pp++){
 				var strObj = tmpVarValArr[pp];
 				if (strObj.split(':').length === 1){
 					// Inject size def
 					var sizeDef = String(strObj).toLowerCase();
-					if (sizeLookup[sizeDef]){						
-						var sizePushArr = sizeLookup[sizeDef].split(',');						
+					if (sizeLookup[sizeDef]){
+						var sizePushArr = sizeLookup[sizeDef].split(',');
 						for (var jj = 0; jj < sizePushArr.length; jj++){
 							strObj = sizePushArr[jj];
 							outputData[p].sizes.push({fileHandle:strObj.split(':')[0], scale: Number(eval(strObj.split(':')[1])), def:sizeDef});
-						}						
+						}
 					} else {
 						throw new Error('Size definition "'+ppp+'" not found');
-					}					
+					}
 				} else {
 					outputData[p].sizes.push({fileHandle:strObj.split(':')[0], scale: Number(eval(strObj.split(':')[1]))});
 				}
 			}
-			
+
 			if (outputData[p].sizes.length > 0){
-			
+
 				// Save the layer comp as the ref will not survive duplicating
 				var layerCompRef = outputData[p].layerCompRef;
 				delete outputData[p].layerCompRef;
-		
+
 				for (var s = 0; s < outputData[p].sizes.length; s++){
-			 
+
 					if (!outputData[p].sizes[s]['scale']){
 						throw new Error('Invalid size scale ['+s+']');
 					}
-			
+
 					var dataObj;
 					if (s === 0){
 						dataObj = outputData[p];
 					} else {
-						dataObj = dupeObj(outputData[p]);				
+						dataObj = dupeObj(outputData[p]);
 					}
-					
-					dataObj.layerCompRef = layerCompRef;			
+
+					dataObj.layerCompRef = layerCompRef;
 					dataObj.sizeIndex = s;
 					dataObj.scale = eval(outputData[p].sizes[s]['scale']);
 					dataObj.sizeFileHandle = outputData[p].sizes[s]['fileHandle'];
-			
+
 					if (s > 0){
 						outputData.splice(p + s,0,dataObj);
 					}
 				}
-		
+
 				if (outputData[p].sizes.length > 1){
 					p+=outputData[p].sizes.length-1;
 				}
 			}
 		}
 	}
-	
-	
-	
+
+
+
 	var layerBoundsCacheLayers = {};
-	
-	var cacheLayerCompBounds = !dupeCompNamesPresent; 
+
+	var cacheLayerCompBounds = !dupeCompNamesPresent;
 	var layerCompBoundsCache = {};
 
 	for (p = 0; p < outputData.length; p++){
-		
+
 		outputData[p].index = p;
 		// Remove ! props that have a double up.
 		// Remove ! for those that don't.
@@ -971,113 +974,113 @@ function processJSX(stream, props){
 					}
 					delProps.push(q);
 				}
-			} 
-		}	
+			}
+		}
 		for (var qq = 0; qq < delProps.length ; qq++){
 			delete outputData[p][delProps[qq]];
 		}
-	
+
 		// Make sure trailing slashes are present.
 		ensureDirPropsHaveTrailingSlash(outputData[p], DIR_PROPS, pathSep);
-	
-		// If no alt text then clean up base and use as a fallback.		
+
+		// If no alt text then clean up base and use as a fallback.
 		if (!outputData[p].alt || outputData[p].alt.length == 0){
 			outputData[p].alt = filenameBaseToAltText(outputData[p].base);
 		}
-	
+
 		outputData[p].base = cleanUpFileNameBase(outputData[p].base);
-	
+
 		// Now you have enough to get src
-		
+
 		// Inject file size handle into output
 		var fileNameSizeHandlePart = '';
 		if (outputData[p].sizeIndex >= 0){
-			
+
 			var foundFileHandlePlaceholder = false;
-			
+
 			if (outputData[p].base.split(SIZE_FILEHANDLE_PLACEHOLDER).length == 2){
 				foundFileHandlePlaceholder = true;
 				outputData[p].base = outputData[p].base.split(SIZE_FILEHANDLE_PLACEHOLDER).join(outputData[p].sizeFileHandle);
 			}
-			
+
 			if (outputData[p].relativePath.split(SIZE_FILEHANDLE_PLACEHOLDER).length == 2){
 				foundFileHandlePlaceholder = true;
 				outputData[p].relativePath = outputData[p].relativePath.split(SIZE_FILEHANDLE_PLACEHOLDER).join(outputData[p].sizeFileHandle);
 			}
-			
+
 			if (!foundFileHandlePlaceholder){
 				fileNameSizeHandlePart = outputData[p].sizeFileHandle;
 			}
-		}		
+		}
 		outputData[p].base = outputData[p].base.split(SIZE_FILEHANDLE_PLACEHOLDER).join('');
 		outputData[p].base = outputData[p].base + fileNameSizeHandlePart
-		
+
 		outputData[p].relativePath = outputData[p].relativePath.split(SIZE_FILEHANDLE_PLACEHOLDER).join('');
-		
+
 		outputData[p].srcFileName = outputData[p].base + '.' + outputData[p].ext;
 		outputData[p].src = outputData[p].relativePath + outputData[p].srcFileName;
 		outputData[p].exportPath = psdContainingDir + outputData[p].basePath + outputData[p].relativePath + outputData[p].srcFileName;
-		
-		
-		
+
+
+
 		// outputOriginLayer
 		// -----------------
-				
+
 		if (outputData[p].outputOriginLayer != null && outputData[p].outputOriginLayer.length > 0){
 			if (layerBoundsCacheLayers[outputData[p].outputOriginLayer]){
-				
+
 				outputData[p].outputOriginX = layerBoundsCacheLayers[outputData[p].outputOriginLayer][0];
-				outputData[p].outputOriginY = layerBoundsCacheLayers[outputData[p].outputOriginLayer][1];			
-					
+				outputData[p].outputOriginY = layerBoundsCacheLayers[outputData[p].outputOriginLayer][1];
+
 			} else {
-				
+
 				var alteredDoc = false;
 				var foundLayer = false;
-				
+
 				for (var i = 0 ; i < doc.layers.length; i++){
-				
+
 					var lyr = doc.layers[i];
 					if (lyr.name == outputData[p].outputOriginLayer){
-						
+
 						if (foundLayer){
 							throw new Error('|outputOriginLayer| "'+outputData[p].outputOriginLayer+'" is not unique');
 						}
 						lyr.visible = true;
 						foundLayer = true;
-						alteredDoc = flattenTopLevelLayerAtIndex(i);						
-						
+						alteredDoc = flattenTopLevelLayerAtIndex(i);
+
 					} else {
-						
+
 						lyr.visible = false;
-						
+
 					}
 				}
-				
+
 				if (!foundLayer){
-					
+
 					throw new Error('|outputOriginLayer| "'+outputData[p].outputOriginLayer+'" not found');
-					
+
 				} else {
-					
-					var layerBounds = getVisibleBounds(doc);					
+
+					var layerBounds = getVisibleBounds(doc);
 					outputData[p].outputOriginX = layerBounds[0];
-					outputData[p].outputOriginY = layerBounds[1];		
+					outputData[p].outputOriginY = layerBounds[1];
 					layerBoundsCacheLayers[outputData[p].outputOriginLayer] = layerBounds;
-					
+
 					revertSnapshot(doc);
-					
+
 				}
 			}
 		}
-		
-		
+
+
 		// boundsComp
 		// ----------
-		
+
 		var boundsCompBounds = null;
-		if (outputData[p].boundsComp && outputData[p].boundsComp.length > 0){	
-			
-			var targetLayerCompName; 
+		if (outputData[p].boundsComp && outputData[p].boundsComp.length > 0){
+
+			var targetLayerCompName;
 			if (outputData[p].boundsComp == BOUNDS_COMP_PREV_KEYWORD){
 				targetLayerCompName = outputData[p]._prevLayerCompName
 			} else if (outputData[p].boundsComp == BOUNDS_COMP_NEXT_KEYWORD){
@@ -1088,62 +1091,62 @@ function processJSX(stream, props){
 
 			var cropToBoundsTarget = doc.layerComps.getByName(targetLayerCompName);
 			if (cropToBoundsTarget){
-		
+
 				if (!outputData[p].cropToBounds){
 					outputData[p].cropToBounds = true;
 				}
-				
+
 				if (cacheLayerCompBounds && layerCompBoundsCache[cropToBoundsTarget.name]){
-					
+
 					boundsCompBounds = copyBounds(layerCompBoundsCache[cropToBoundsTarget.name]);
-					
+
 				} else {
-				
+
 					cropToBoundsTarget.apply();
-				
+
 					// Hide reg layer so it's not included in bounds
 					for (var r = 0 ; r < doc.layers.length; r++){
 						var lyr = doc.layers[r];
-						if (lyr.visible && lyr.name && lyr.name.length >= REG_LAYER_NAME.length && lyr.name.substr(0,REG_LAYER_NAME.length) === REG_LAYER_NAME){				
+						if (lyr.visible && lyr.name && lyr.name.length >= REG_LAYER_NAME.length && lyr.name.substr(0,REG_LAYER_NAME.length) === REG_LAYER_NAME){
 							lyr.visible = false;
 						}
-					}	
-				
+					}
+
 					flattenTopLevelLayers(doc, true, false, null, IGNORE_PREFIX_CHARS);
 					boundsCompBounds = getVisibleBounds(doc);
 					revertSnapshot(doc);
-					
+
 					layerCompBoundsCache[cropToBoundsTarget.name] = copyBounds(boundsCompBounds);
-									
+
 				}
-			} 
+			}
 		}
-		
+
 		// Apply layer comp
 		var layerComp = outputData[p].layerCompRef;
 		layerComp.apply();
-		
+
 		// Look for reg point layer, record position and hide
 		var regPt = null;
 		for (var r = 0 ; r < doc.layers.length; r++){
 			var lyr = doc.layers[r];
-			if (lyr.visible && lyr.name && lyr.name.length >= REG_LAYER_NAME.length && lyr.name.substr(0,REG_LAYER_NAME.length) === REG_LAYER_NAME){			
+			if (lyr.visible && lyr.name && lyr.name.length >= REG_LAYER_NAME.length && lyr.name.substr(0,REG_LAYER_NAME.length) === REG_LAYER_NAME){
 				lyr.visible = false;
 				regPt = getLayerCenterPoint(lyr);
 				outputData[p].reg = '(custom)';
 				break;
 			}
-		}	
-		
+		}
+
 		var revertRequired = false;
-		
+
 		var outputBounds;
-		if (outputData[p].cropToBounds){	
-		
+		if (outputData[p].cropToBounds){
+
 			if (boundsCompBounds){
 				outputBounds = boundsCompBounds;
 			} else {
-				
+
 				if (cacheLayerCompBounds && layerCompBoundsCache[layerComp.name]){
 						boundsCompBounds = copyBounds(layerCompBoundsCache[layerComp.name]);
 				} else {
@@ -1153,100 +1156,100 @@ function processJSX(stream, props){
 					outputBounds = getVisibleBounds(doc);
 				}
 			}
-			
-			
+
+
 		} else {
 			outputBounds = copyBounds(psdBounds);
 		}
 
 		var cropBounds = copyBounds(outputBounds)
 		outputData[p].outputBounds = outputBounds;
-		
+
 		// Resize bounds to accomodate cropping - this way reg point will be correct
-		
+
 		var forceW;
 		var forceH;
 		if (outputData[p].forceW > 0 || outputData[p].forceH > 0){
-			
+
 			var cropW = getBoundsWidth(cropBounds);
 			var cropH = getBoundsHeight(cropBounds);
-			
+
 			forceW = outputData[p].forceW > 0 ? outputData[p].forceW : cropW;
-			forceH = outputData[p].forceH > 0 ? outputData[p].forceH : cropH; 
-			
+			forceH = outputData[p].forceH > 0 ? outputData[p].forceH : cropH;
+
 			// Assuming canvas resize will be middle center
 			outputBounds[0] = Math.round(outputBounds[0] - (forceW - cropW) * 0.5);
 			outputBounds[1] = Math.round(outputBounds[1] - (forceH - cropH) * 0.5);
 			outputBounds[2] = Math.round(outputBounds[2] + (forceW - cropW) * 0.5);
 			outputBounds[3] = Math.round(outputBounds[3] + (forceH - cropH) * 0.5);
-		
+
 		}
 
 		if (!regPt && outputData[p].reg !== '(custom)'){
 			// Interpret 'reg' data
 			regPt = getRegPtFromRegStringAndBounds(outputData[p].reg, outputData[p].outputBounds);
 		}
-		
+
 		if (!regPt){
 			regPt = {x: parseInt(outputBounds[0], 10), y: parseInt(outputBounds[1], 10)};
 		}
-		
+
 		outputData[p].tlX = outputData[p].outputBounds[0] - outputData[p].outputOriginX;
 		outputData[p].tlY = outputData[p].outputBounds[1] - outputData[p].outputOriginY;
-		
+
 		// Apply reg point data
 		outputData[p].x = regPt.x - outputData[p].outputOriginX;
 		outputData[p].y = regPt.y - outputData[p].outputOriginY;
-		
+
 		outputData[p].regX = regPt.x - outputData[p].outputBounds[0];
 		outputData[p].regY = regPt.y - outputData[p].outputBounds[1];
-		
+
 		outputData[p].regPercX = (regPt.x - outputData[p].outputBounds[0]) / (outputData[p].outputBounds[2] - outputData[p].outputBounds[0]);
 		outputData[p].regPercY = (regPt.y - outputData[p].outputBounds[1]) / (outputData[p].outputBounds[3] - outputData[p].outputBounds[1])
-		
-		outputData[p].width = outputBounds[2]-outputBounds[0]; //String(parseInt(outputBounds[2],10)-parseInt(outputBounds[0],10)); 
+
+		outputData[p].width = outputBounds[2]-outputBounds[0]; //String(parseInt(outputBounds[2],10)-parseInt(outputBounds[0],10));
 		outputData[p].height = outputBounds[3]-outputBounds[1]; //String(parseInt(outputBounds[3],10)-parseInt(outputBounds[1],10));
-		
+
 		if (!dryRun && !outputData[p].placeholder && (!outputSelected || outputData[p].selected)){
 
 			if (!areBoundsEqual(psdBounds, outputData[p].outputBounds)){
 				revertRequired = true;
 				doc.crop(cropBounds);
 			}
-			
-			if (outputData[p].forceW > 0 || outputData[p].forceH > 0){				
+
+			if (outputData[p].forceW > 0 || outputData[p].forceH > 0){
 				doc.resizeCanvas(UnitValue(forceW,"px"),UnitValue(forceH,"px"), AnchorPosition.MIDDLECENTER);
 			}
-			
+
 			if (outputData[p].flipX){
 				revertRequired = true;
 				doc.flipCanvas(Direction.HORIZONTAL);
-			} 
-	
+			}
+
 			if (outputData[p].flipY){
 				revertRequired = true;
 				doc.flipCanvas(Direction.VERTICAL);
 			}
-			
+
 			if (outputData[p].scale != 1){
-			
+
 				revertRequired = true;
 				doc.resizeImage(UnitValue(doc.width.value * outputData[p].scale,"px"),null,null,ResampleMethod.BICUBIC);
 				// Update dims
-				outputData[p].width = String(doc.width.value); 
-				outputData[p].height = String(doc.height.value); 
-				
+				outputData[p].width = String(doc.width.value);
+				outputData[p].height = String(doc.height.value);
+
 				outputData[p].x = outputData[p].x * outputData[p].scale;
 				outputData[p].y = outputData[p].y * outputData[p].scale;
-				
+
 				outputData[p].regX = outputData[p].regX * outputData[p].scale;
 				outputData[p].regY = outputData[p].regY * outputData[p].scale;
-				
+
 				outputData[p].tlX = outputData[p].tlX * outputData[p].scale;
 				outputData[p].tlY = outputData[p].tlY * outputData[p].scale;
-				
+
 			}
-		
+
 			// Ouput image
 			var exportOptions = new ExportOptionsSaveForWeb();
 			if (outputData[p].ext == 'png'){
@@ -1255,87 +1258,87 @@ function processJSX(stream, props){
 				exportOptions.interlaced = false;
 				exportOptions.quality = 100;
 				exportOptions.includeProfile = false;
-				exportOptions.format = SaveDocumentType.PNG;//-8; //SaveDocumentType.PNG; //-24 //JPEG, COMPUSERVEGIF, PNG-8, BMP 
+				exportOptions.format = SaveDocumentType.PNG;//-8; //SaveDocumentType.PNG; //-24 //JPEG, COMPUSERVEGIF, PNG-8, BMP
 			} else if (outputData[p].ext == 'jpg'){
 				exportOptions = new ExportOptionsSaveForWeb();
 				exportOptions.format = SaveDocumentType.JPEG;
 				exportOptions.quality = outputData[p].quality;
 			} else if (outputData[p].ext == 'gif'){
 				exportOptions.ditherAmount = 0;
-				exportOptions.dither = Dither.NOISE; // Dither.NONE; // 
+				exportOptions.dither = Dither.NOISE; // Dither.NONE; //
 				exportOptions.palette = Palette.LOCALPERCEPTUAL; //Palette.LOCALADAPTIVE;
 				exportOptions.format = SaveDocumentType.COMPUSERVEGIF;
 				exportOptions.forced = ForcedColors.BLACKWHITE;
 				exportOptions.interlaced = false;
-				exportOptions.preserverExactColors = true;			
+				exportOptions.preserverExactColors = true;
 				if (outputData[p].matte){
-					var userMatteColor = hexToRGB(outputData[p].matte);				
+					var userMatteColor = hexToRGB(outputData[p].matte);
 					var matteColor = new RGBColor();
 					matteColor.red = userMatteColor.r;
 					matteColor.green = userMatteColor.g;
 					matteColor.blue = userMatteColor.b;
 					exportOptions.matteColor = matteColor;
-				}			
+				}
 				exportOptions.colors = outputData[p].colors;
 				exportOptions.transparency = true;
-							
+
 			} else {
 				throw new Error('Export format "'+outputData[p].ext+'" not found.');
 			}
-			
+
 			doc.exportDocument(new File(outputData[p].exportPath), ExportType.SAVEFORWEB, exportOptions);
-	
+
 		} else {
-			
+
 			if (outputData[p].scale != 1){
-			
+
 				// Update dims
-				outputData[p].width = String(Math.round(Number(outputData[p].width) * outputData[p].scale)); 
-				outputData[p].height = String(Math.round(Number(outputData[p].height) * outputData[p].scale)); 
-				
+				outputData[p].width = String(Math.round(Number(outputData[p].width) * outputData[p].scale));
+				outputData[p].height = String(Math.round(Number(outputData[p].height) * outputData[p].scale));
+
 				outputData[p].x = outputData[p].x * outputData[p].scale;
 				outputData[p].y = outputData[p].y * outputData[p].scale;
-				
+
 				outputData[p].regX = outputData[p].regX * outputData[p].scale;
 				outputData[p].regY = outputData[p].regY * outputData[p].scale;
-				
+
 			}
 		}
-		
+
 		if (revertRequired){
-			
+
 			revertSnapshot(doc);
 		}
-		
+
 		if (outputSelected){
 			// Don't optimize if didn't output
 			outputData[p].optimize = false;
 		}
-		
-		
+
+
 		//if (configData && configData.template){
-			
+
 		//
-			
+
 		//}
-		
-		
+
+
 		// OUTPUT MULTIPLE TEMPLATES
-		
+
 		// Split template into array if necessary
-		// 
-		
-	
+		//
+
+
 		// Convert template string to array
 		//if (templateIsRawString){
 		//	outputData[p].template = [outputData[p].template];
 		//} else {
 		//	outputData[p].template = outputData[p].template.split(TEMPLATE_MULTI_SEP);
-		//}	
-		
+		//}
+
 		// |output| and |templatePartsAdded| are now arrays
 		// Ensure they have enough elements to hold each template
-		
+
 		//if (output.length < outputData[p].template.length){
 		//	for (var odp = 0; odp < outputData[p].template.length; odp++){
 		//		if (odp > output.length){
@@ -1343,7 +1346,7 @@ function processJSX(stream, props){
 		//		}
 		//	}
 		//}
-		
+
 		//if (templatePartsAdded.length < outputData[p].template.length){
 		//	for (var odp = 0; odp < outputData[p].template.length; odp++){
 		//		if (odp > templatePartsAdded.length){
@@ -1351,42 +1354,42 @@ function processJSX(stream, props){
 		//		}
 		//	}
 		//}
-		
-		
+
+
 		//stream.writeln('debug: this ' + outputData[p].template);
-		//stream.writeln('debug: config' + configData.template);		
+		//stream.writeln('debug: config' + configData.template);
 		//return;
-		
-		
+
+
 		//outputTemplates
-		
+
 		//var compTemplateIsRawString = outputData[p].template.split(TEMPLATE_VAR_PRE).length > 1 && outputData[p].template.split(TEMPLATE_VAR_POST).length > 1;
 		// configTemplateIsRawString
 		// outputTemplates
-		
-		
-		// 
-		
+
+
+		//
+
 		var compTemplateSplit = outputData[p].template.split(TEMPLATE_MULTI_SEP);
 		if (compTemplateSplit.length != outputTemplates.length){
 			throw new Error('Layer comp template list must be same length as config comp');
 		}
-				
-		 
+
+
 		for (var ote = 0; ote < compTemplateSplit.length; ote++){
-		
+
 			var template = compTemplateSplit[ote]; // from config
 			var templateIsRawString = template.split(TEMPLATE_VAR_PRE).length > 1 && template.split(TEMPLATE_VAR_POST).length > 1;
-			
+
 			var templateFound = false;
-		
+
 			if (tplData[template] !== undefined){
-				for (var t = 0; t < TEMPLATE_PARTS.length; t++){			
+				for (var t = 0; t < TEMPLATE_PARTS.length; t++){
 					var part = TEMPLATE_PARTS[t];
 					if (tplData[template][part] !== undefined){
 						if (output[ote][part] === undefined){
 							output[ote][part] = [];
-						} 
+						}
 						templateFound = true;
 						if (part == 'main'){
 							var mainData = applyVarObjToTemplateString(outputData[p], tplData[template][part], TEMPLATE_VAR_PRE, TEMPLATE_VAR_POST, outputData[p].outputValueFactor, OUTPUT_VALUE_FACTOR_PROPS, outputData[p].roundOutputValues);
@@ -1402,88 +1405,88 @@ function processJSX(stream, props){
 								if (configData){
 									templateContent = applyVarObjToTemplateString(configData, templateContent, TEMPLATE_VAR_PRE, TEMPLATE_VAR_POST, 1, []);
 								}
-								output[ote][part].push(templateContent);	
+								output[ote][part].push(templateContent);
 								templatePartsAdded[ote][templatePartID] = true;
 							}
 						}
 					}
 				}
 			}
-		
+
 			if (!templateFound && templateIsRawString){
 				if (output[ote]['main'] === undefined){
 					output[ote]['main'] = [];
 				}
 				output[ote]['main'].push(applyVarObjToTemplateString(outputData[p], template, TEMPLATE_VAR_PRE, TEMPLATE_VAR_POST, outputData[p].outputValueFactor, OUTPUT_VALUE_FACTOR_PROPS, outputData[p].roundOutputValues));
 			}
-		
+
 		}
-		
-		
+
+
 	}
-	
-	
+
+
 	// Revert doc
 	revertSnapshot(doc);
-	
+
 	var responseDataAll = [];
-	
-	// Loop templates	
-		
+
+	// Loop templates
+
 	for (var ote = 0; ote < outputTemplates.length; ote++){
-		
+
 		// Make output out of template data
 		var outputString = '';
-		for (var t = 0; t < TEMPLATE_PARTS.length; t++){	
+		for (var t = 0; t < TEMPLATE_PARTS.length; t++){
 			if (output[ote][TEMPLATE_PARTS[t]] !== undefined){
 				outputString += output[ote][TEMPLATE_PARTS[t]].join('');
 			}
 		}
-	
+
 		// Look for output file path
 		var outputFilePath = '';
 		var outputTags = {};
 		if (configData && configData.outputFilePath && configData.outputFilePath[ote].length > 0){
-		
+
 			configData.basePath = ensureDirPathHasTrailingSlash(configData.basePath, pathSep);
-		
+
 			// You can inject config props into this path
 			var injectedOutputFilePath = applyVarObjToTemplateString(configData, configData.outputFilePath[ote], TEMPLATE_VAR_PRE, TEMPLATE_VAR_POST, 1, []);
-		
+
 			outputFilePath = configData.basePath + injectedOutputFilePath; //configData.outputFilePath;
 			if (configData.outputTagStart && configData.outputTagEnd && configData.outputTagStart[ote].length > 0 && configData.outputTagEnd[ote].length > 0){
 				outputTags = {start:configData.outputTagStart[ote], end:configData.outputTagEnd[ote]};
 			}
 		}
-		
-		
-	
+
+
+
 		// Write response back to node
 		var responseData = {outputData: cleanupOutputDataForOutput(outputData,['layerCompRef']),
 												outputString: outputString,
 												outputFilePath: outputFilePath,
 												outputTags: outputTags}
-								
-		
+
+
 		responseDataAll.push(responseData);
-		
-	}			
-											
+
+	}
+
 	stream.writeln(
 		JSON.stringify(responseDataAll, null, 2)
 	);
-	
+
 	// JSX functions
 	// -------------
 	//get the list of multiple selected layers
 	//http://www.nekomataya.info/nekojyarashi/wiki.cgi?photoshop%CA%A3%BF%F4%A5%BB%A5%EC%A5%AF%A5%C8
-	
+
 	// Usage:
 	// var selLayerLookup = getSelectedLayerLookup();
 	// var isSel = isLayerSelected(layerRef, selLayerLookup);
-	
+
 	function getSelectedLayerLookup(layerRef){
-		
+
 		var lookup = {};
 		if (outputSelected){
 			var selLayers = _getSelectedLayers();
@@ -1492,16 +1495,16 @@ function processJSX(stream, props){
 			}
 		}
 		return lookup;
-		
+
 	}
-	
+
 	function isLayerSelected(layerRef, lookup){
-		
+
 		return lookup['name:' + layerRef.name + ',parent:' + layerRef.parent.name];
-		
+
 	}
-	
-	function _getSelectedLayers(){ 
+
+	function _getSelectedLayers(){
 		var idGrp = stringIDToTypeID( "groupLayersEvent" );
 		var descGrp = new ActionDescriptor();
 		var refGrp = new ActionReference();
@@ -1516,7 +1519,7 @@ function processJSX(stream, props){
 			var ref2 = new ActionReference();
 			var id10 = charIDToTypeID( "HstS" );
 			var id11 = charIDToTypeID( "Ordn" );
-			var id12 = charIDToTypeID( "Prvs" );  
+			var id12 = charIDToTypeID( "Prvs" );
 			ref2.putEnumerated( id10, id11, id12 );
 		desc5.putReference( id9, ref2 );
 		executeAction( id8, desc5, DialogModes.NO );
@@ -1526,7 +1529,7 @@ function processJSX(stream, props){
 	function dupeObj(obj){
 		return JSON.parse(JSON.stringify(obj));
 	}
-	
+
 	function hexToRGB(hex){
 		var result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
     return result ? {
@@ -1535,18 +1538,18 @@ function processJSX(stream, props){
 			b: parseInt(result[3], 16)
 		} : null;
 	}
-	
+
 	function cleanUpFileNameBase(base){
-		
+
 		//base = base.toLowerCase();
 		// Remove spaces
 		base = base.split(' ').join('-');
 		return base;
-		
+
 	}
-	
+
 	function cleanupOutputDataForOutput(outputData, hidePropsArr){
-	
+
 		var hidePropsLookup = '+++' + hidePropsArr.join('+++') + '+++';
 		for (var i = 0;i < outputData.length; i++){
 			var obj = outputData[i];
@@ -1555,27 +1558,27 @@ function processJSX(stream, props){
 					outputData[i][p] = '...';
 				}
 			}
-		}	
-		
+		}
+
 		return outputData;
-	
+
 	}
-	
+
 	function filenameBaseToAltText(base){
-		
+
 		if (base.length > 0){
 			base = base.charAt(0).toUpperCase() + base.substr(1).toLowerCase();
 		}
-	
+
 		base = base.split('-').join(' ');
 		base = base.split('_').join(' ');
-		
+
 		return base;
-		
+
 	}
-	
+
 	function ensureDirPropsHaveTrailingSlash(obj, dirProps, sep){
-	
+
 		for (var i = 0; i < dirProps.length; i++){
 			var prop = dirProps[i];
 			if (obj[prop] && obj[prop].length > 0){
@@ -1583,15 +1586,15 @@ function processJSX(stream, props){
 			}
 		}
 	}
-	
-	function ensureDirPathHasTrailingSlash(path, sep){	
+
+	function ensureDirPathHasTrailingSlash(path, sep){
 		path = String(path);
 		if (path.charAt(path.length - 1) != sep){
-			path = path + sep;			
+			path = path + sep;
 		}
-		return path;		
+		return path;
 	}
-	
+
 	function copyBounds(bounds){
 		var result = new Array();
 		for(var i = 0; i < 4; i++){
@@ -1608,70 +1611,70 @@ function processJSX(stream, props){
 		}
 		return true;
 	}
-	
+
 	function getLayerCenterPoint(layerRef){
-	
+
 		return {x : layerRef.bounds[0].value + (layerRef.bounds[2].value - layerRef.bounds[0].value)*0.5, y: layerRef.bounds[1].value + (layerRef.bounds[3].value - layerRef.bounds[1].value)*0.5};
-		
+
 	}
-	
+
 	function getBoundsWidth(bounds){
 		var width = bounds[2] - bounds[0];
 		return width;
 	}
-	
-	function getBoundsHeight(bounds){		
+
+	function getBoundsHeight(bounds){
 		var height = bounds[3] - bounds[1];
 		return height;
 	}
-	
+
 	function getRegPtFromRegStringAndBounds(regStr, bounds){
-		
+
 		// Get bounds
 		var x = bounds[0];
 		var y = bounds[1];
 		var width = bounds[2] - bounds[0];
 		var height = bounds[3] - bounds[1];
-		
+
 		// Interpret regStr
-		
+
 		// Default: top left
 		var hozP = 0;
 		var vertP = 0;
-		
+
 		if (regStr.split(',').length == 2) {
-		
+
 			var coords = regStr.split(',');
 			var rx = Number(coords[0]);
 			var ry = Number(coords[1]);
-			
+
 			return {x: rx, y: ry};
-		
+
 		} else {
-		
+
 			regStr = regStr.toUpperCase();
 			regStr = regStr.split('M').join('C');
 			regStr = regStr.split('CC').join('C');
-		
+
 			if (regStr == 'C'){
 				hozP = vertP = 0.5;
 			} else {
-		
+
 				var remains = '';
 				var hozFound = false;
 				var vertFound = false;
 				//var chars = ['L','R','T','B'];
 				//for (var i = 0; i < chars.length; i++){
 				// var c = chars[i];
-				
+
 				if (regStr.split('L').length > 1){
 					hozP = 0;
-					hozFound = true;					
+					hozFound = true;
 				} else if (regStr.split('R').length > 1){
 					hozP = 1;
 					hozFound = true;
-				} 
-				
+				}
+
 				if (regStr.split('T').length > 1){
 					vertP = 0;
 					vertFound = true;
@@ -1680,81 +1683,81 @@ function processJSX(stream, props){
 					vertFound = true;
 				}
 				//}
-			
+
 				if (hozFound && !vertFound && regStr.split('C').length > 1){
 					vertP = 0.5;
 				} else if (!hozFound && vertFound && regStr.split('C').length > 1){
 					hozP = 0.5;
 				}
 			}
-		
+
 			return {x: x + width * hozP, y: y + height * vertP};
-		
+
 		}
 	}
-	
+
 	function getVisibleBounds(doc){
-	
+
 		var tlXi = 0;
 		var tlYi = 1;
 		var brXi = 2;
 		var brYi = 3;
-		
+
 		var docBounds = new Array(0,0,doc.width.value,doc.height.value);
 		var cropBounds = copyBounds(docBounds);
 		var anyBoundsFound = false;
-		
+
 		for(var i = 0 ; i < doc.layers.length; i++){
-			
+
 			var layer = doc.layers[i];
-			
-			if (layer.visible && (layer.bounds[0].value != 0 || layer.bounds[1].value != 0 || layer.bounds[2].value != 0 || layer.bounds[3].value != 0)){			
-				
+
+			if (layer.visible && (layer.bounds[0].value != 0 || layer.bounds[1].value != 0 || layer.bounds[2].value != 0 || layer.bounds[3].value != 0)){
+
 				if (!anyBoundsFound){
 					cropBounds = copyBounds([layer.bounds[0].value, layer.bounds[1].value, layer.bounds[2].value, layer.bounds[3].value]);
-					anyBoundsFound = true; 
+					anyBoundsFound = true;
 				} else {
 					if (layer.bounds[tlXi].value < cropBounds[tlXi]){
-						cropBounds[tlXi] = layer.bounds[tlXi].value;						
+						cropBounds[tlXi] = layer.bounds[tlXi].value;
 					}
 					if (layer.bounds[tlYi].value < cropBounds[tlYi]){
 						cropBounds[tlYi] = layer.bounds[tlYi].value;
 					}
 					if (layer.bounds[brXi].value > cropBounds[brXi]){
 						cropBounds[brXi] = Math.min(doc.width.value,layer.bounds[brXi].value);
-					}							
+					}
 					if (layer.bounds[brYi].value > cropBounds[brYi]){
 						cropBounds[brYi] = layer.bounds[brYi].value;
 					}
-					if (areBoundsEqual(cropBounds, docBounds)){					  
+					if (areBoundsEqual(cropBounds, docBounds)){
 						break;
 					}
 				}
 			}
 		}
-		
+
 		if (cropBounds[tlXi] < 0){
 			cropBounds[tlXi] = 0;
 		}
-		
+
 		if (cropBounds[tlYi] < 0){
 			cropBounds[tlYi] = 0;
 		}
-		
+
 		if (cropBounds[brXi] > doc.width.value){
 			cropBounds[brXi] = doc.width.value;
 		}
-		
+
 		if (cropBounds[brYi] > doc.height.value){
 			cropBounds[brYi] = doc.height.value;
 		}
-		
+
 		return cropBounds;
-		
+
 	}
-	
-	function applyVarObjToTemplateString(obj,str, pre, post, outputValueFactor, OUTPUT_VALUE_FACTOR_PROPS, roundOutputValues){		
-		
+
+	function applyVarObjToTemplateString(obj,str, pre, post, outputValueFactor, OUTPUT_VALUE_FACTOR_PROPS, roundOutputValues){
+
 		str = String(str);
 		var outputValueFactorPropsLookup = '#' + OUTPUT_VALUE_FACTOR_PROPS.join('#') + '#';
 		for (var p in obj) {
@@ -1766,14 +1769,14 @@ function processJSX(stream, props){
 					val = Math.round(val);
 				}
 			}
-			
+
 			str = str.split(pre+p+post).join(val);
 		}
 		return str;
 	}
 
 	function rasterizeVectorMask() {
-		try{ 
+		try{
 			var id488 = stringIDToTypeID( "rasterizeLayer" );
 			var desc44 = new ActionDescriptor();
 			var id489 = charIDToTypeID( "null" );
@@ -1817,11 +1820,11 @@ function processJSX(stream, props){
 		{
 			if(hsObj[i].snapshot) {
 				 doc.activeHistoryState = hsObj.getByName('Snapshot ' + i);
-				 break; 
-			}      
+				 break;
+			}
 		}
 	}
-	
+
 	function getExt(strPathOrFileName){
 		var ext = '';
 		strPathOrFileName = String(strPathOrFileName);
@@ -1831,9 +1834,9 @@ function processJSX(stream, props){
 		}
 		return ext;
 	}
-	
+
 	function getFileBaseName(strPathOrFileName, ext){
-	
+
 		// Remove extension
 		if (ext && ext.length > 0 && strPathOrFileName.substr(-ext.length).toLowerCase() === ext.toLowerCase()){
 			strPathOrFileName = strPathOrFileName.substr(0, strPathOrFileName.length - ext.length);
@@ -1841,26 +1844,26 @@ function processJSX(stream, props){
 				strPathOrFileName = strPathOrFileName.substr(0, strPathOrFileName.length - 1);
 			}
 		}
-		
+
 		strPathOrFileName = strPathOrFileName.split('\\').join('/');
 		var arr = strPathOrFileName.split('/');
 		return arr[arr.length - 1];
-		
+
 	}
-	
+
 	function getContainingDirPath(strPath, pathSep){
-		
+
 		strPath = strPath.split('\\').join('/');
 		var arr = strPath.split('/');
-		arr.splice(arr.length - 1, 1);		
+		arr.splice(arr.length - 1, 1);
 		return arr.join(pathSep);
-		
+
 	}
-	
+
 	// If |defaultsObjs| has a key that |obj| doesn't, obj will have that key added.
 	// A prop with "!" at start will override even if key exists.
 	function extendObjWithDefaults(obj, defaultsObjs, arrIgnoreProps){
-	
+
 		var strIgnoreProps = arrIgnoreProps ? '~'+arrIgnoreProps.join('~')+'~' : '';
 		for (var p in defaultsObjs){
 			var override = false;
@@ -1868,7 +1871,7 @@ function processJSX(stream, props){
 			if (p.charAt(0) == '!'){
 				override = true;
 				p = p.substr(1);
-			}			
+			}
 			if (strIgnoreProps.split('~'+p+'~').length === 1){
 				if (override || obj[p] === undefined){
 					obj[p] = defaultVal;
@@ -1877,66 +1880,66 @@ function processJSX(stream, props){
 		}
 		return obj;
 	}
-	
+
 	// Flatten
 	// -------
-	
+
 	function flattenTopLevelLayers(doc, visibleOnly, selectedOnly, selLayerLookup, IGNORE_PREFIX_CHARS){
-	
+
 		var flattenedLayers = 0;
 		var totalLayers = doc.layers.length;
 		for (var i = 0 ; i < totalLayers; i++){
 			var layer = doc.layers[i];
-			
+
 			if (!IGNORE_PREFIX_CHARS[layer.name.charAt(0)]){
-			
+
 				if (!visibleOnly || layer.visible){
 					if (!selectedOnly || isLayerSelected(layer, selLayerLookup)){
-				
+
 						doc.activeLayer = layer;
 						if (layer.typename === 'LayerSet' ||
 								activeLayerHasLayerMask() ||
 								activeLayerHasVectorMask() ||
 								activeLayerHasFilterMask() ||
-								activeLayerHasStyle()){	
+								activeLayerHasStyle()){
 								flattenedLayers++;
 								createSmartObject(doc, layer);
 						}
 					}
 				}
-			
+
 			}
 		}
-	
+
 		return {flattenedLayers:flattenedLayers, totalLayers:totalLayers};
-		
+
 	}
-	
+
 	function flattenTopLevelLayerAtIndex(index){
-	
+
 			var layer = doc.layers[index];
-			var wasAltered = false;	
+			var wasAltered = false;
 			doc.activeLayer = layer;
 			if (layer.typename === 'LayerSet' ||
 					activeLayerHasLayerMask() ||
 					activeLayerHasVectorMask() ||
 					activeLayerHasFilterMask() ||
-					activeLayerHasStyle()){	
+					activeLayerHasStyle()){
 					wasAltered = true;
 					createSmartObject(doc, layer);
 			}
-		
+
 			return wasAltered;
 	}
-	
+
 	// create smartobject from specified layer (default is active layer)
 	function createSmartObject(doc, layer)
 	{
-		 
+
 		 var layer = layer != undefined ? layer : doc.activeLayer;
-	 
+
 		 if(doc.activeLayer != layer) doc.activeLayer = layer;
-	 
+
 		 try
 		 {
 				var idnewPlacedLayer = stringIDToTypeID( "newPlacedLayer" );
@@ -1948,7 +1951,7 @@ function processJSX(stream, props){
 				return undefined;
 		 }
 	}
-	
+
 	function activeLayerHasLayerMask() {
 		// Source: https://github.com/picwellwisher12pk/Presets/blob/master/Scripts/Flatten%20All%20Masks.jsx
 		var hasLayerMask = false;
@@ -1966,7 +1969,7 @@ function processJSX(stream, props){
 		}
 		return hasLayerMask;
 	}
-	
+
 	function activeLayerHasVectorMask() {
 		// Source: https://github.com/picwellwisher12pk/Presets/blob/master/Scripts/Flatten%20All%20Masks.jsx
 		var hasVectorMask = false;
@@ -1987,7 +1990,7 @@ function processJSX(stream, props){
 		}
 		return hasVectorMask;
 	}
-	
+
 	function activeLayerHasFilterMask() {
 		// Source: https://github.com/picwellwisher12pk/Presets/blob/master/Scripts/Flatten%20All%20Masks.jsx
 		var hasFilterMask = false;
@@ -2005,7 +2008,7 @@ function processJSX(stream, props){
 		}
 		return hasFilterMask;
 	}
-	
+
 	function activeLayerHasStyle() {
 		// Source: https://github.com/LeZuse/photoshop-scripts/blob/master/default/Flatten%20All%20Layer%20Effects.jsx
 		var hasLayerStyle = false;
@@ -2023,14 +2026,14 @@ function processJSX(stream, props){
 		}
 		return hasLayerStyle;
 	}
-	
+
 	/* jshint ignore:end */
 }
 
 function pr(obj){
-	
+
 	console.log(JSON.stringify(obj, null, 2));
-	
+
 };
 
 module.exports = new Choppy();

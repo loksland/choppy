@@ -6,9 +6,7 @@
 cd "`dirname "$0"`"
 
 
-node choppy
+node choppy # findandreplace "-c15" "-c01"
 # node rupert-ui
 
 $SHELL
-
-
