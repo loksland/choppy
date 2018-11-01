@@ -368,6 +368,7 @@ Will find and replace matching string in layercomp names and comment fields.
 
 ### Release History ###
 
+- v1.7.7 - Support for `Photoshop 2019` added
 - v1.7.5 - Simplified command arg parsing to fix `-` prefixed params.
 - v1.7.4 - Hard coded edit to possibly abandoned dependency `photoshop` v0.5.2 to include  
            support for `Photoshop 2018` in `photoshop-0.5.2-edit/photoshop/lib/photoshop-eval.js`

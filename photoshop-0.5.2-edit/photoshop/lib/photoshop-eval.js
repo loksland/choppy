@@ -23,7 +23,8 @@ evalInPhotoshop.getName = function(){
   if (evalInPhotoshop.NAME == null) {
     try {
       ;(function(error, Applications){
-      	if (Applications.indexOf('Adobe Photoshop CC 2018') != -1) evalInPhotoshop.NAME = "Adobe Photoshop CC 2018"; // LMN
+      	if (Applications.indexOf('Adobe Photoshop CC 2019') != -1) evalInPhotoshop.NAME = "Adobe Photoshop CC 2019"; // LMN
+        else if (Applications.indexOf('Adobe Photoshop CC 2018') != -1) evalInPhotoshop.NAME = "Adobe Photoshop CC 2018"; // LMN
         else if (Applications.indexOf('Adobe Photoshop CC 2017') != -1) evalInPhotoshop.NAME = "Adobe Photoshop CC 2017"; // LMN
         else if (Applications.indexOf('Adobe Photoshop CC 2015') != -1) evalInPhotoshop.NAME = "Adobe Photoshop CC 2015";
         else if (Applications.indexOf('Adobe Photoshop CC 2014') != -1) evalInPhotoshop.NAME = "Adobe Photoshop CC 2014";
@@ -39,7 +40,7 @@ evalInPhotoshop.getName = function(){
 function evalInPhotoshop(fn, args){
   var ID = ++UID
   var debugInfo
-  
+
   if (exports.debug){
     debugInfo = {
       ID:ID,
@@ -50,25 +51,25 @@ function evalInPhotoshop(fn, args){
       args:args
     })
   }
-  
+
   var readable = new Readable
   readable._read = function(size){
     readable._read = noop
     if (exports.debug) console.warn('_read', debugInfo)
-    
+
     var script = functionToExtendScript(fn, args)
     var cliArgs = []
-    
+
     cliArgs.push("-e", 'on run argv')
     cliArgs.push("-e", 'with timeout of 600 seconds') // LMN
     cliArgs.push("-e",   'tell application "' + evalInPhotoshop.getName() + '" to do javascript (item 1 of argv)' + (module.exports.debugger ? ' show debugger on runtime error' : ''))
     cliArgs.push("-e", 'end timeout') // LMN
     cliArgs.push("-e", 'end run')
-    
+
     cliArgs.push(script)
-    
+
     if (exports.debug) console.warn('WILL LOCK', debugInfo)
-    
+
     lockFile.lock(lockPath, lockOptions, function(error, fileDescriptor){
       if (error){
         if (exports.debug) {debugInfo.error = error; console.warn('NOT LOCKED', debugInfo)}
@@ -76,15 +77,15 @@ function evalInPhotoshop(fn, args){
       }
       if (exports.debug) {console.warn('LOCKED', debugInfo)}
       if (exports.debug) {console.warn('spawn', debugInfo)}
-      
+
       var child = spawn('/usr/bin/osascript', cliArgs)
-      
+
       child.stdout.on('readable', function(){
         readable.push(this.read())
       })
       var _error = ''
       child.stderr.on('data', function(data){ _error += data })
-  
+
       child.on('exit', function(code){
         if (exports.debug) {
           debugInfo.exitCode = code
@@ -104,7 +105,7 @@ function evalInPhotoshop(fn, args){
           if (code) readable.emit('error', Error(_error));
         })
       })
-      
+
     })
   }
   return readable
