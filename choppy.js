@@ -570,14 +570,17 @@ function processJSX(stream, props){
 	var psdName = doc.name;
 	var psdFullName = doc.fullName;
 	var psdBounds = new Array(0,0,doc.width.value,doc.height.value);
-
+	
 	// Assuming doc has an extension
 
 	var psdNameParts = psdName.split('.');
 	psdNameParts.splice(psdNameParts.length - 1, 1);
 	var psdBase = psdNameParts.join('.');
 	PROP_DEFAULTS['psdBase'] = psdBase;
-
+	PROP_DEFAULTS['psdWidth'] = doc.width.value;
+	PROP_DEFAULTS['psdHeight'] = doc.height.value;
+	
+	
 	if (!doc){
 		throw new Error('No PSD document open.')
 	}

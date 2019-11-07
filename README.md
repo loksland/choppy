@@ -45,7 +45,7 @@ Requirements
 ------------
 
 - Node + npm
-- Photoshop (tested for Photoshop CC 2014)
+- Photoshop (tested for Photoshop CC 2019)
 
 Documentation
 -------------
@@ -249,9 +249,13 @@ Respects |outputOriginLayer|, |scale|
 - **regPercX + regPercY**  
 The relative reg point as a percentage value of the pic dimensions. Eg. (0,0) is top left,
 (1,1) is bottom right.
+- Any other unreserved vars set anywhere in the config chain.
+
+### Constant Vars ###
 - **psdBase**  
 The base filename of the current PSD doc.
-- Any other unreserved vars set anywhere in the config chain.
+- **psdWidth**, **psdHeight**
+The width of the PSD (in pixels)
 
 ### Format ###
 - %varname%
@@ -368,6 +372,7 @@ Will find and replace matching string in layercomp names and comment fields.
 
 ### Release History ###
 
+- v1.7.8 - Added `psdWidth` and `psdHeight` var constants.
 - v1.7.7 - Support for `Photoshop 2019` added
 - v1.7.5 - Simplified command arg parsing to fix `-` prefixed params.
 - v1.7.4 - Hard coded edit to possibly abandoned dependency `photoshop` v0.5.2 to include  
