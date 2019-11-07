@@ -73,7 +73,10 @@ Choppy.simpleArrDupe = function(arr){
 }
 
 Choppy.prototype.onPsdDone = function() {
+
+	
 	this.processNext();
+	
 }
 
 Choppy.prototype.processNext = function() {
@@ -83,10 +86,12 @@ Choppy.prototype.processNext = function() {
 
 	var activeMode;
 	if (this.psdPaths.length == 0){
+		
 		activeMode = true;
 		if (this.psdIndex == 1){
 			return;
 		}
+		
 	} else {
 
 		activeMode = false;
@@ -114,7 +119,13 @@ Choppy.prototype.processNext = function() {
 
 	// Get the active doc.
 	photoshop.invoke(ensurePsdIsActiveDocumentJSX, [targetPsdPath, path.sep], function(error, activeDocument){
-
+		
+		// Create a temporary file to work on
+		// console.log(activeDocument)
+		// self.originalActiveDoc = activeDocument.doc;
+		// console.log(activeDocument.doc)
+		// self.dupeActiveDoc = activeDocument.doc.duplicate();
+		
 		var responseBuffer = '';
 
 		if (self.findandreplace){
@@ -190,7 +201,6 @@ Choppy.prototype.processNext = function() {
 			return;
 		}
 
-
 		var psdContainingDir = Choppy.ensureDirPathHasTrailingSlash(activeDocument.path, path.sep);
 		var baseConfigData = {};
 
@@ -206,9 +216,8 @@ Choppy.prototype.processNext = function() {
 				baseConfigData = {};
 		}
 
-		//stream.writeln('debug:que?' + baseConfigData.basePath);
-
-
+		// stream.writeln('debug:que?' + baseConfigData.basePath);
+		
 		// Check for templates
 		self.templateFiles = Choppy.simpleArrDupe(self.templateFilesCore);
 		var localTemplateDirPath = psdContainingDir + self.TEMPLATE_DIR_NAME + path.sep;
@@ -347,21 +356,6 @@ Choppy.prototype.processNext = function() {
 
 			}
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 		});
 	});
 
@@ -475,6 +469,8 @@ function ensurePsdIsActiveDocumentJSX(targetPath, sep){
   /* jshint ignore:end */
 }
 
+
+
 function processJSX(stream, props){
 	/* jshint ignore:start */
 
@@ -490,11 +486,12 @@ function processJSX(stream, props){
 	if (makecomps || flatten){
 		selLayerLookup = getSelectedLayerLookup();
 	}
-
+	
 	var findandreplace = props.findandreplace ;
 	var findandreplaceProps = props.findandreplaceProps;
 
 	if (findandreplace && findandreplaceProps){
+		
 		var find = findandreplaceProps.find;
 		var replace = findandreplaceProps.replace;
 		for (var i =0; i < doc.layerComps.length; i++){
@@ -525,7 +522,9 @@ function processJSX(stream, props){
 
 		}
 	}
+	
 
+	
 	// Set args
 	var tplData = props.tplData;
 	var pathSep = props.pathSep;
@@ -584,6 +583,7 @@ function processJSX(stream, props){
 	if (!doc){
 		throw new Error('No PSD document open.')
 	}
+
 
 
 
@@ -778,9 +778,10 @@ function processJSX(stream, props){
 
 	}
 
-
-
-
+	var originalDoc = doc;
+	doc = doc.duplicate();
+	//doc.close(SaveOptions.DONOTSAVECHANGES);
+	//doc = originalDoc;
 
 	takeSnapshot();
 
@@ -990,8 +991,15 @@ function processJSX(stream, props){
 		if (!outputData[p].alt || outputData[p].alt.length == 0){
 			outputData[p].alt = filenameBaseToAltText(outputData[p].base);
 		}
-
+		
 		outputData[p].base = cleanUpFileNameBase(outputData[p].base);
+
+		
+		
+		// applyVarObjToTemplateString(obj,str, pre, post, outputValueFactor, OUTPUT_VALUE_FACTOR_PROPS, roundOutputValues){
+		outputData[p].relativePath = applyVarObjToTemplateString(outputData[p], outputData[p].relativePath, TEMPLATE_VAR_PRE, TEMPLATE_VAR_POST, outputData[p].outputValueFactor, OUTPUT_VALUE_FACTOR_PROPS, outputData[p].roundOutputValues)
+
+		
 
 		// Now you have enough to get src
 
@@ -1024,7 +1032,7 @@ function processJSX(stream, props){
 		outputData[p].src = outputData[p].relativePath + outputData[p].srcFileName;
 		outputData[p].exportPath = psdContainingDir + outputData[p].basePath + outputData[p].relativePath + outputData[p].srcFileName;
 
-
+		
 
 		// outputOriginLayer
 		// -----------------
@@ -1415,7 +1423,8 @@ function processJSX(stream, props){
 					}
 				}
 			}
-
+			
+		
 			if (!templateFound && templateIsRawString){
 				if (output[ote]['main'] === undefined){
 					output[ote]['main'] = [];
@@ -1431,6 +1440,9 @@ function processJSX(stream, props){
 
 	// Revert doc
 	revertSnapshot(doc);
+	
+	doc.close(SaveOptions.DONOTSAVECHANGES);
+	doc = originalDoc;
 
 	var responseDataAll = [];
 

@@ -372,6 +372,8 @@ Will find and replace matching string in layercomp names and comment fields.
 
 ### Release History ###
 
+- v1.7.9 - Working doc is duplicated so original doc is untouched by processing,
+           `relativePath` now supports dynamic props, such as `%psdBase%`
 - v1.7.8 - Added `psdWidth` and `psdHeight` var constants.
 - v1.7.7 - Support for `Photoshop 2019` added
 - v1.7.5 - Simplified command arg parsing to fix `-` prefixed params.
