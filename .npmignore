@@ -29,5 +29,6 @@ node_modules
 
 *.jpg
 *.png
+*.command
 
 examples

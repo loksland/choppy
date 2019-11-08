@@ -74,10 +74,12 @@ Choppy.simpleArrDupe = function(arr){
 
 Choppy.prototype.onPsdDone = function() {
 
-	
 	this.processNext();
 	
 }
+
+
+
 
 Choppy.prototype.processNext = function() {
 
@@ -541,7 +543,7 @@ function processJSX(stream, props){
 
 	// The default image prop fallbacks.
 
-	var PROP_DEFAULTS = {alt: '', cropToBounds: false, template: 'img', ext: 'jpg', quality: 80, flipX: false, flipY: false, relativePath: './', basePath: './', matte:null, colors:256, optimize:false, scale:1, sizeFileHandle:'', sizeIndex:-1, sizes:null, reg: 'TL', outputValueFactor: 1, regX:0, regY:0, regPercX:0, regPercY:0, forceW:-1, forceH:-1, roundOutputValues:false, boundsComp:'', outputOriginX: 0, outputOriginY: 0, outputOriginLayer:null, placeholder:false, reverseOrder: false, tlX:0, tlY:0};
+	var PROP_DEFAULTS = {alt: '', cropToBounds: false, template: 'img', ext: 'jpg', quality: 80, flipX: false, flipY: false, relativePath: './', basePath: './', matte:null, colors:256, optimize:false, scale:1, sizeFileHandle:'', sizeIndex:-1, sizes:null, reg: 'TL', outputValueFactor: 1, regX:0, regY:0, regPercX:0, regPercY:0, forceW:-1, forceH:-1, roundOutputValues:false, boundsComp:'', outputOriginX: 0, outputOriginY: 0, outputOriginLayer:null, placeholder:false, reverseOrder: false, tlX:0, tlY:0, wipeRelativePath: ''};
 	// Which props are affected by |outputValueFactor|
 	var OUTPUT_VALUE_FACTOR_PROPS = ['width','height','x','y','regX','regY', 'tlX', 'tlY'];
 	var BOOL_PROPS = ['cropToBounds', 'flipX', 'flipY', 'optimize', 'roundOutputValues', 'placeholder', 'reverseOrder'];
@@ -585,7 +587,7 @@ function processJSX(stream, props){
 	}
 
 
-
+	
 
 	var configData = null;
 	var outputData = [];
@@ -798,7 +800,16 @@ function processJSX(stream, props){
 	if (configData.reverseOrder){
 		outputData.reverse();
 	}
-
+	
+	if (configData.wipeRelativePath.length > 0 && !dryRun){		
+		var wipeRelativePath = configData.wipeRelativePath;
+		wipeRelativePath = applyVarObjToTemplateString(configData, wipeRelativePath, TEMPLATE_VAR_PRE, TEMPLATE_VAR_POST, 1, []);		
+		wipeRelativePath = ensureDirPathHasTrailingSlash(wipeRelativePath, pathSep);		
+		configData.basePath = ensureDirPathHasTrailingSlash(configData.basePath, pathSep);		
+		var wipeDir = new Folder(psdContainingDir + configData.basePath + wipeRelativePath);
+		deleteImgsFromDir(wipeDir);
+	}
+	
 	// The number of templates must be defined in {choppy} or base config file.
 	var outputTemplates = configData.template.split(TEMPLATE_MULTI_SEP);
 
@@ -998,7 +1009,7 @@ function processJSX(stream, props){
 		
 		// applyVarObjToTemplateString(obj,str, pre, post, outputValueFactor, OUTPUT_VALUE_FACTOR_PROPS, roundOutputValues){
 		outputData[p].relativePath = applyVarObjToTemplateString(outputData[p], outputData[p].relativePath, TEMPLATE_VAR_PRE, TEMPLATE_VAR_POST, outputData[p].outputValueFactor, OUTPUT_VALUE_FACTOR_PROPS, outputData[p].roundOutputValues)
-
+		
 		
 
 		// Now you have enough to get src
@@ -1441,7 +1452,7 @@ function processJSX(stream, props){
 	// Revert doc
 	revertSnapshot(doc);
 	
-	doc.close(SaveOptions.DONOTSAVECHANGES);
+	doc.close(SaveOptions.DONOTSAVECHANGES); // Close dupe doc
 	doc = originalDoc;
 
 	var responseDataAll = [];
@@ -1474,8 +1485,6 @@ function processJSX(stream, props){
 			}
 		}
 
-
-
 		// Write response back to node
 		var responseData = {outputData: cleanupOutputDataForOutput(outputData,['layerCompRef']),
 												outputString: outputString,
@@ -1499,6 +1508,17 @@ function processJSX(stream, props){
 	// Usage:
 	// var selLayerLookup = getSelectedLayerLookup();
 	// var isSel = isLayerSelected(layerRef, selLayerLookup);
+	
+	// folderRef = Folder(pathDocSrc.fullName.parent + '/' + docBaseName + '/' + IMG_FOLDER_NAME);
+	function deleteImgsFromDir(dir){
+	    if (!dir.exists){
+	        alert('Img dir not found: `'+dir.fullName+'`');
+	    }
+	    var files = dir.getFiles(/.+\.(?:gif|jpg|jpeg|bmp|png)$/i);
+	    for (var i = 0; i < files.length; i++){
+	        files[i].remove()
+	    }
+	}
 
 	function getSelectedLayerLookup(layerRef){
 

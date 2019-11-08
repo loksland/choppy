@@ -152,6 +152,7 @@ and on the top level.
 Default false. If set to true will not output an image though all other processing will
 occur.
 
+
 ### {reg} Layer ###
 
 If a layer named {reg} is visible in a layer comp it will be hidden and used as a marker
@@ -186,6 +187,8 @@ Escaped hyphens will prevent PS from merging multiple in a row: `\-`.
 Default false. If set to true will reverse the layer comp order. If |boundsComp| is
 specified with {next} or {prev} this will not be affected, only output.
 The output prop |index| will output in ascending order whether reversed or not.
+- **wipeRelativePath** (boolean)  
+If set to a relative path, all images at this location will be deleted before running the output.
 
 ### Base config file ###
 
@@ -372,6 +375,7 @@ Will find and replace matching string in layercomp names and comment fields.
 
 ### Release History ###
 
+- v1.8.0 - Added `wipeRelativePath`
 - v1.7.9 - Working doc is duplicated so original doc is untouched by processing,
            `relativePath` now supports dynamic props, such as `%psdBase%`
 - v1.7.8 - Added `psdWidth` and `psdHeight` var constants.

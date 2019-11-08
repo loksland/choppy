@@ -29,6 +29,6 @@ node_modules
 
 examples/**/*.jpg
 examples/**/*.png
-Browser.command
+*.command
 
 _nogit
