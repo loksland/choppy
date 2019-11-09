@@ -313,12 +313,6 @@ Usage:
 $ choppy makecomps
 ```
 
-Can also be run with `sel` to only convert selected layer/s and/or using selected layer
-comp as a guide. *Tip: On a mac Cmd-Select layer or layer comp to deselect*.
-```bash
-$ choppy makecomps sel
-```
-
 **Find and replace**
 
 ```bash
