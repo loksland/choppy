@@ -299,17 +299,6 @@ Utility commands
 
 *Additional helper commands. Images will not be outputted when these processes run*
 
-**Make comps**
-
-Add the arg `makecomps` and each top-level layer will be added as a new comp. If there
-is an existing layercomp then this will be used as a reference for containing folder and
-extension.
-
-Usage:
-```bash
-$ choppy makecomps
-```
-
 **Find and replace**
 
 ```bash
@@ -320,8 +309,9 @@ Will find and replace matching string in layercomp names and comment fields.
 
 ### Release History ###
 
+- v1.8.3 - Removed legacy `makecomps` utility command. This functionality is better served by a standalone `jsx`.
 - v1.8.2 - Cleaning up dependencies and legacy code.
-- v1.8.1 - Removed legacy `flatten` utility command. Removed legacy `sel` utility command. Removed legacy `dry` utility command. Removed legacy `optimize` property.
+- v1.8.1 - Removed legacy `flatten` utility command. Removed legacy `sel` utility command. Removed legacy `dry` utility command. Removed legacy `optimize` property. This functionality is better served by a standalone `jsx`.
 - v1.8.0 - Added `wipeRelativePath`
 - v1.7.9 - Working doc is duplicated so original doc is untouched by processing,
            `relativePath` now supports dynamic props, such as `%psdBase%`

@@ -21,7 +21,7 @@ var Choppy = function() {
 
 	this.psdPaths = []; // User wants you to open doc if not already open
 	this.verbose = false;
-	this.makecomps = false;
+	
 	this.findandreplace = false;
 	this.findandreplaceProps = {find:null, replace:null}
 
@@ -30,8 +30,6 @@ var Choppy = function() {
 	for (var k = 0; k < argv._.length; k++){
 		if (String(argv._[k]).toLowerCase() === 'verbose'){
 			this.verbose = true;
-		} else if (String(argv._[k]).toLowerCase() === 'makecomps'){
-			this.makecomps = true;
 		} else if (path.extname(String(argv._[k])).toLowerCase() === '.psd'){
 			this.psdPaths.push(argv._[k]);
 		} else if (String(argv._[k]).toLowerCase() === 'findandreplace'){
@@ -151,38 +149,7 @@ Choppy.prototype.processNext = function() {
 		}
 
 
-		if (self.makecomps){
-
-			if (self.makecomps){
-				console.log('Making a comp for each top-level layer using 1st layer comp as guide...');
-			}
-			photoshop.createStream(processJSX, {pathSep:path.sep, makecomps:self.makecomps}).on('data', function(data) {
-
-				var dataStr = data.toString();
-				if (dataStr.substr(0,6) === 'debug:'){
-					console.log(dataStr.substr(6));
-				} else {
-					responseBuffer += dataStr;
-				}
-
-			}).on('end', function() {
-
-				var responseData;
-				try {
-					responseData = JSON.parse(responseBuffer);
-				} catch (e) {
-					console.log(responseBuffer.toString());
-					return;
-				}
-
-				console.log(responseData.msg);
-
-				self.onPsdDone();
-
-			});
-
-			return;
-		}
+		
 
 		var psdContainingDir = Choppy.ensureDirPathHasTrailingSlash(activeDocument.path, path.sep);
 		var baseConfigData = {};
@@ -415,15 +382,12 @@ function processJSX(stream, props){
 	// If a layer comp or layer starts with this char then they will not be included in operatios
 	var IGNORE_PREFIX_CHARS = {'`':true};
 
-	var makecomps = props.makecomps;
+
 	var utilMsg = '\n';
 	var doc = app.activeDocument;
 	
 	var selLayerLookup = {};
-	if (makecomps){
-		selLayerLookup = getSelectedLayerLookup();
-	}
-	
+
 	var findandreplace = props.findandreplace ;
 	var findandreplaceProps = props.findandreplaceProps;
 
@@ -505,13 +469,8 @@ function processJSX(stream, props){
 		throw new Error('No PSD document open.')
 	}
 
-
-	
-
 	var configData = null;
 	var outputData = [];
-
-	var makecompsGuideComp = null;
 
 	var compNameCheck = {}
 	var dupeCompNamesPresent = false;
@@ -616,88 +575,13 @@ function processJSX(stream, props){
 					compData['relativePath'] = ensureDirPathHasTrailingSlash(getContainingDirPath(layerComp.name, pathSep), pathSep);
 				}
 
-				if (makecomps){
-					if (makecompsGuideComp == null){
-						makecompsGuideComp = compData; // Use first at least
-					}
-					
-					break;
-					
-				} else {
-					outputData.push(compData);
-				}
+				outputData.push(compData);
 
 			}
 		}
 	}
 
 
-
-
-	// Make comps utility command
-	// Waited for first layer comp to process data, as we will base all new comps
-	// on |ext| and |relativePath| of this comp
-	if (makecomps){
-
-		var ext = '';
-		var relativePath = '';
-		var comment = '';
-		var appearance = true;
-		var position = true
-		var visibility = true;
-		if (makecompsGuideComp != null){
-
-			utilMsg += 'Using "'+makecompsGuideComp.layerCompRef.name+'" as a guide for config\n';
-
-			ext = makecompsGuideComp.ext ? makecompsGuideComp.ext : '';
-			relativePath = makecompsGuideComp.relativePath ? makecompsGuideComp.relativePath : '';
-			comment = makecompsGuideComp.layerCompRef.comment ? makecompsGuideComp.layerCompRef.comment : '';
-			appearance = makecompsGuideComp.layerCompRef.appearance;
-			position = makecompsGuideComp.layerCompRef.position;
-			visibility = makecompsGuideComp.layerCompRef.visibility;
-
-		}
-
-		if (ext.length > 0 && ext.charAt(0) != '.'){
-			ext = '.' + ext;
-		}
-
-		for (var i = 0 ; i < doc.layers.length; i++){
-			var layer = doc.layers[i];
-			layer.visible = false;
-		}
-
-		var totalNewComps = 0;
-		for (var i = 0 ; i < doc.layers.length; i++){
-			var layer = doc.layers[i];
-			if (!IGNORE_PREFIX_CHARS[layer.name.charAt(0)]){
-
-				layer.visible = true;
-
-				var layerCompName = relativePath + layer.name + ext;
-				// http://jongware.mit.edu/pscs5js_html/psjscs5/pc_LayerComps.html
-				// LayerComp add (name: string[, comment: string][, appearance: bool=false][, position: bool=false][, visibility: bool=true])
-				doc.layerComps.add(layerCompName, comment, appearance, position, visibility);
-
-				utilMsg+= '- "' + layerCompName + '"'
-				utilMsg+= '\n';
-				layer.visible = false;
-
-				totalNewComps++;
-
-			}
-		}
-
-		utilMsg += '\nMade ' + String(totalNewComps) + ' layer comps.\n';
-
-		// Write response back to node
-
-		stream.writeln(
-			JSON.stringify({msg: utilMsg}, null, 2)
-		);
-		return;
-
-	}
 
 	var originalDoc = doc;
 	doc = doc.duplicate();
