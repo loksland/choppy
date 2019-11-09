@@ -123,9 +123,6 @@ sizeDefRETINA: @2x:1,SD
 sizes: RETINA  
 Although this example uses uppercase the shorthand name is case insensitive.  
 Size definitions can be placed in the .choppy config file for use across multiple files.
-- **optimize** (boolean)  
-Utilizes the amazing [ImageOptim-CLI](https://github.com/JamieMason/ImageOptim-CLI) to compress the outputted image. Mac only.
-Requires free software [ImageAlpha](http://pngmini.com/) and [ImageOptim](http://imageoptim.com/) installed.
 - **reg** (string)  
 Override the reg point for the image. Default is top left. Input values are 2 characters:
 the first represents vertical space, the second horizontal. Eg. "TL" = top left,
@@ -323,7 +320,7 @@ Will find and replace matching string in layercomp names and comment fields.
 
 ### Release History ###
 
-- v1.8.1 - Removed legacy `flatten` utility command. Removed legacy `sel` utility command. Removed legacy `dry` utility command.
+- v1.8.1 - Removed legacy `flatten` utility command. Removed legacy `sel` utility command. Removed legacy `dry` utility command. Removed legacy `optimize` property.
 - v1.8.0 - Added `wipeRelativePath`
 - v1.7.9 - Working doc is duplicated so original doc is untouched by processing,
            `relativePath` now supports dynamic props, such as `%psdBase%`

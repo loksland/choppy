@@ -287,54 +287,11 @@ Choppy.prototype.processNext = function() {
 
 				}
 
-
-				// Optimize (on last loop)
-
 				if (rd == responseDataArr.length - 1){ // Last loop only
 					
-						// Optimize using imageoptim-cli
-						var optimizeFilePaths = [];
-						for (var j = 0; j < responseData.outputData.length; j++){
-							if (responseData.outputData[j].optimize){
-							  var optPath = psdContainingDir + responseData.outputData[j].basePath + responseData.outputData[j].src;
-
-							  //optPath = optPath.split('/./').join(path.sep); // Remove these as they break the optimization program
-								optimizeFilePaths.push(optPath);
-							}
-						}
-						if (optimizeFilePaths.length > 0){
-							var isMac = /^darwin/.test(process.platform);
-							if (!isMac){
-								console.log('Cannot optimize on non-Mac systems. See https://github.com/JamieMason/ImageOptim-CLI for more info.');
-								self.onPsdDone();
-							} else {
-
-								var imageoptimFilePath = require.resolve('imageoptim-cli');
-
-								console.log('Optimizing...\n');
-								var optimize = spawn('sh', [__dirname + path.sep + 'optimize.sh', imageoptimFilePath, optimizeFilePaths.join('\n')]);
-
-								optimize.stdout.on('data', function (data) {
-									console.log(data.toString());
-								});
-
-								optimize.stderr.on('data', function (data) {
-									console.log('stderr: ' + data);
-								});
-
-								optimize.on('exit', function (code) {
-									if (code !== 0){
-										console.log('Error encountered.\n');
-									}
-									self.onPsdDone();
-								});
-							}
-						} else {
-							self.onPsdDone();
-						}
+						self.onPsdDone();
 				
 				}
-
 			}
 
 		});
@@ -505,10 +462,10 @@ function processJSX(stream, props){
 
 	// The default image prop fallbacks.
 
-	var PROP_DEFAULTS = {alt: '', cropToBounds: false, template: 'img', ext: 'jpg', quality: 80, flipX: false, flipY: false, relativePath: './', basePath: './', matte:null, colors:256, optimize:false, scale:1, sizeFileHandle:'', sizeIndex:-1, sizes:null, reg: 'TL', outputValueFactor: 1, regX:0, regY:0, regPercX:0, regPercY:0, forceW:-1, forceH:-1, roundOutputValues:false, boundsComp:'', outputOriginX: 0, outputOriginY: 0, outputOriginLayer:null, placeholder:false, reverseOrder: false, tlX:0, tlY:0, wipeRelativePath: ''};
+	var PROP_DEFAULTS = {alt: '', cropToBounds: false, template: 'img', ext: 'jpg', quality: 80, flipX: false, flipY: false, relativePath: './', basePath: './', matte:null, colors:256, scale:1, sizeFileHandle:'', sizeIndex:-1, sizes:null, reg: 'TL', outputValueFactor: 1, regX:0, regY:0, regPercX:0, regPercY:0, forceW:-1, forceH:-1, roundOutputValues:false, boundsComp:'', outputOriginX: 0, outputOriginY: 0, outputOriginLayer:null, placeholder:false, reverseOrder: false, tlX:0, tlY:0, wipeRelativePath: ''};
 	// Which props are affected by |outputValueFactor|
 	var OUTPUT_VALUE_FACTOR_PROPS = ['width','height','x','y','regX','regY', 'tlX', 'tlY'];
-	var BOOL_PROPS = ['cropToBounds', 'flipX', 'flipY', 'optimize', 'roundOutputValues', 'placeholder', 'reverseOrder'];
+	var BOOL_PROPS = ['cropToBounds', 'flipX', 'flipY', 'roundOutputValues', 'placeholder', 'reverseOrder'];
 	var NUM_PROPS = ['quality','scale','forceW','forceH', 'outputOriginX', 'outputOriginX', 'tlX', 'tlY'];
 	var NEWLINE_PROPS = ['template'];
 	// These will have a trailing slash added if needed.
