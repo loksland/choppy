@@ -312,33 +312,6 @@ Utility commands
 
 *Additional helper commands. Images will not be outputted when these processes run*
 
-**Flatten**  
-
-Add the arg `flatten` and all top-level layers will be converted to smart objects if they
-are directories or have styles applied. Will not save doc so revert to cancel a flatten
-command.
-
-This is what Choppy does for every layer comp anyway, so flattening first will speed up
-subsequent Choppy exports as it doesn't have to do it over and over again.
-
-All top level layers will be set to visible during this command.
-
-**WARNING** Some layer comp scenarios will be broken by this command. Hidden layers in
-sub-folder flattened hidden.
-
-Layer comps may become broken and need to be re-applied if they referenced a folder or
-layer with styles.
-
-Usage:
-```bash
-$ choppy flatten
-```
-
-Can also be run with `sel` to only flatten selected layers.
-```bash
-$ choppy flatten sel
-```
-
 **Make comps**
 
 Add the arg `makecomps` and each top-level layer will be added as a new comp. If there
@@ -350,20 +323,11 @@ Usage:
 $ choppy makecomps
 ```
 
-You can run a flatten first as well:
-```bash
-$ choppy makecomps flatten
-```
-
 Can also be run with `sel` to only convert selected layer/s and/or using selected layer
 comp as a guide. *Tip: On a mac Cmd-Select layer or layer comp to deselect*.
 ```bash
 $ choppy makecomps sel
 ```
-
-Note: Flattening and sel - eg. `choppy makecomps sel flattened` is not recommended as the
-flattening process may reset selected state of layers. In this scenario run `flatten`
-first.
 
 **Find and replace**
 
@@ -375,6 +339,7 @@ Will find and replace matching string in layercomp names and comment fields.
 
 ### Release History ###
 
+- v1.8.1 - Removed legacy 'flatten' utility command
 - v1.8.0 - Added `wipeRelativePath`
 - v1.7.9 - Working doc is duplicated so original doc is untouched by processing,
            `relativePath` now supports dynamic props, such as `%psdBase%`

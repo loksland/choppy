@@ -22,7 +22,6 @@ var Choppy = function() {
 	this.outputSelected = false;
 	this.psdPaths = []; // User wants you to open doc if not already open
 	this.verbose = false;
-	this.flatten = false;
 	this.makecomps = false;
 	this.findandreplace = false;
 	this.findandreplaceProps = {find:null, replace:null}
@@ -36,8 +35,6 @@ var Choppy = function() {
 			this.outputSelected = true;
 		} else if (String(argv._[k]).toLowerCase() === 'verbose'){
 			this.verbose = true;
-		} else if (String(argv._[k]).toLowerCase() === 'flatten'){
-			this.flatten = true;
 		} else if (String(argv._[k]).toLowerCase() === 'makecomps'){
 			this.makecomps = true;
 		} else if (path.extname(String(argv._[k])).toLowerCase() === '.psd'){
@@ -77,10 +74,6 @@ Choppy.prototype.onPsdDone = function() {
 	this.processNext();
 	
 }
-
-
-
-
 Choppy.prototype.processNext = function() {
 
 	this.psdIndex++;
@@ -163,11 +156,8 @@ Choppy.prototype.processNext = function() {
 		}
 
 
-		if (self.flatten || self.makecomps){
+		if (self.makecomps){
 
-			if (self.flatten){
-				console.log('Flattening'+(self.outputSelected ? ' selected layers' : '')+'...');
-			}
 			if (self.makecomps){
 				if (self.outputSelected){
 					console.log('Making a comp for each selected top-level layer using selected or 1st layer comp as guide...');
@@ -175,7 +165,7 @@ Choppy.prototype.processNext = function() {
 					console.log('Making a comp for each top-level layer using 1st layer comp as guide...');
 				}
 			}
-			photoshop.createStream(processJSX, {flatten: self.flatten, pathSep:path.sep, makecomps:self.makecomps, outputSelected:self.outputSelected}).on('data', function(data) {
+			photoshop.createStream(processJSX, {pathSep:path.sep, makecomps:self.makecomps, outputSelected:self.outputSelected}).on('data', function(data) {
 
 				var dataStr = data.toString();
 				if (dataStr.substr(0,6) === 'debug:'){
@@ -479,13 +469,12 @@ function processJSX(stream, props){
 	// If a layer comp or layer starts with this char then they will not be included in operatios
 	var IGNORE_PREFIX_CHARS = {'`':true};
 
-	var flatten = props.flatten;
 	var makecomps = props.makecomps;
 	var utilMsg = '\n';
 	var doc = app.activeDocument;
 	var outputSelected = props.outputSelected;
 	var selLayerLookup = {};
-	if (makecomps || flatten){
+	if (makecomps){
 		selLayerLookup = getSelectedLayerLookup();
 	}
 	
@@ -508,22 +497,7 @@ function processJSX(stream, props){
 
 	}
 
-	// var isSel = isLayerSelected(layerRef, selLayerLookup);
-	if (flatten){
 
-		var flattenResult = flattenTopLevelLayers(doc, false, outputSelected, selLayerLookup, IGNORE_PREFIX_CHARS);
-
-		utilMsg+= 'Flattened ' + String(flattenResult.flattenedLayers) + ' layers out of ' + String(flattenResult.totalLayers) + ' total.';
-
-		if (!makecomps) {
-			// If not hanging on to make comps then bail
-			stream.writeln(
-				JSON.stringify({msg: utilMsg}, null, 2)
-			);
-			return;
-
-		}
-	}
 	
 
 	
@@ -616,6 +590,9 @@ function processJSX(stream, props){
 		if (i < doc.layerComps.length-1){
 			compData._nextLayerCompName = doc.layerComps[i+1].name;
 		}
+
+		
+
 
 		if (!IGNORE_PREFIX_CHARS[layerComp.name.charAt(0)]){
 
