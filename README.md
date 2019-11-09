@@ -287,12 +287,6 @@ $ choppy dry
 ```
 Template and text output will still perform.
 
-Add the arg `sel` to output the selected layer comp/s only
-```bash
-$ choppy sel
-```
-Template and text output will still perform.
-
 Add psd file/s to the arg to be published
 ```bash
 $ choppy path/to/mypics.psd
@@ -339,7 +333,7 @@ Will find and replace matching string in layercomp names and comment fields.
 
 ### Release History ###
 
-- v1.8.1 - Removed legacy 'flatten' utility command
+- v1.8.1 - Removed legacy `flatten` utility command. Removed legacy `sel` utility command.
 - v1.8.0 - Added `wipeRelativePath`
 - v1.7.9 - Working doc is duplicated so original doc is untouched by processing,
            `relativePath` now supports dynamic props, such as `%psdBase%`

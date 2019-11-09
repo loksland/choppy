@@ -19,7 +19,7 @@ var Choppy = function() {
 
 	// Get arg
 	this.dryRun = false;
-	this.outputSelected = false;
+
 	this.psdPaths = []; // User wants you to open doc if not already open
 	this.verbose = false;
 	this.makecomps = false;
@@ -31,8 +31,6 @@ var Choppy = function() {
 	for (var k = 0; k < argv._.length; k++){
 		if (String(argv._[k]).toLowerCase() === 'dry'){
 			this.dryRun = true;
-		} else if (String(argv._[k]).toLowerCase() === 'sel'){
-			this.outputSelected = true;
 		} else if (String(argv._[k]).toLowerCase() === 'verbose'){
 			this.verbose = true;
 		} else if (String(argv._[k]).toLowerCase() === 'makecomps'){
@@ -127,7 +125,7 @@ Choppy.prototype.processNext = function() {
 
 			console.log('Finding "'+self.findandreplaceProps.find+'" and replacing with "'+self.findandreplaceProps.replace+'" in layer comp names and comments...');
 
-			photoshop.createStream(processJSX, {pathSep:path.sep, outputSelected:self.outputSelected, findandreplace:self.findandreplace, findandreplaceProps:self.findandreplaceProps}).on('data', function(data) {
+			photoshop.createStream(processJSX, {pathSep:path.sep, findandreplace:self.findandreplace, findandreplaceProps:self.findandreplaceProps}).on('data', function(data) {
 
 				var dataStr = data.toString();
 				if (dataStr.substr(0,6) === 'debug:'){
@@ -159,13 +157,9 @@ Choppy.prototype.processNext = function() {
 		if (self.makecomps){
 
 			if (self.makecomps){
-				if (self.outputSelected){
-					console.log('Making a comp for each selected top-level layer using selected or 1st layer comp as guide...');
-				} else {
-					console.log('Making a comp for each top-level layer using 1st layer comp as guide...');
-				}
+				console.log('Making a comp for each top-level layer using 1st layer comp as guide...');
 			}
-			photoshop.createStream(processJSX, {pathSep:path.sep, makecomps:self.makecomps, outputSelected:self.outputSelected}).on('data', function(data) {
+			photoshop.createStream(processJSX, {pathSep:path.sep, makecomps:self.makecomps}).on('data', function(data) {
 
 				var dataStr = data.toString();
 				if (dataStr.substr(0,6) === 'debug:'){
@@ -219,7 +213,7 @@ Choppy.prototype.processNext = function() {
 
 		var tplData = self.getTemplateDataFromFiles(self.templateFiles);
 
-		var processStream = photoshop.createStream(processJSX, {tplData:tplData, pathSep:path.sep, baseConfigData:baseConfigData, TEMPLATE_PARTS:self.TEMPLATE_PARTS, dryRun:self.dryRun, outputSelected:self.outputSelected}).on('data', function(data) {
+		var processStream = photoshop.createStream(processJSX, {tplData:tplData, pathSep:path.sep, baseConfigData:baseConfigData, TEMPLATE_PARTS:self.TEMPLATE_PARTS, dryRun:self.dryRun}).on('data', function(data) {
 
 			var dataStr = data.toString();
 			if (dataStr.substr(0,6) === 'debug:'){
@@ -472,7 +466,7 @@ function processJSX(stream, props){
 	var makecomps = props.makecomps;
 	var utilMsg = '\n';
 	var doc = app.activeDocument;
-	var outputSelected = props.outputSelected;
+	
 	var selLayerLookup = {};
 	if (makecomps){
 		selLayerLookup = getSelectedLayerLookup();
@@ -513,7 +507,6 @@ function processJSX(stream, props){
 	//stream.writeln('debug:var baseConfigData=' + JSON.stringify(baseConfigData) +';');
 	//stream.writeln('debug:var TEMPLATE_PARTS=' + JSON.stringify(TEMPLATE_PARTS) +';');
 	//stream.writeln('debug:var dryRun=' + JSON.stringify(dryRun) +';');
-	//stream.writeln('debug:var outputSelected=' + JSON.stringify(outputSelected) +';');
 
 	// The default image prop fallbacks.
 
@@ -672,12 +665,12 @@ function processJSX(stream, props){
 				}
 
 				if (makecomps){
-					if (makecompsGuideComp == null || (outputSelected && layerComp.selected)){
+					if (makecompsGuideComp == null){
 						makecompsGuideComp = compData; // Use first at least
 					}
-					if (!outputSelected || layerComp.selected){
-						break;
-					}
+					
+					break;
+					
 				} else {
 					outputData.push(compData);
 				}
@@ -727,22 +720,19 @@ function processJSX(stream, props){
 			var layer = doc.layers[i];
 			if (!IGNORE_PREFIX_CHARS[layer.name.charAt(0)]){
 
-				if (!outputSelected || isLayerSelected(layer, selLayerLookup)){
+				layer.visible = true;
 
-					layer.visible = true;
+				var layerCompName = relativePath + layer.name + ext;
+				// http://jongware.mit.edu/pscs5js_html/psjscs5/pc_LayerComps.html
+				// LayerComp add (name: string[, comment: string][, appearance: bool=false][, position: bool=false][, visibility: bool=true])
+				doc.layerComps.add(layerCompName, comment, appearance, position, visibility);
 
-					var layerCompName = relativePath + layer.name + ext;
-					// http://jongware.mit.edu/pscs5js_html/psjscs5/pc_LayerComps.html
-					// LayerComp add (name: string[, comment: string][, appearance: bool=false][, position: bool=false][, visibility: bool=true])
-					doc.layerComps.add(layerCompName, comment, appearance, position, visibility);
+				utilMsg+= '- "' + layerCompName + '"'
+				utilMsg+= '\n';
+				layer.visible = false;
 
-					utilMsg+= '- "' + layerCompName + '"'
-					utilMsg+= '\n';
-					layer.visible = false;
+				totalNewComps++;
 
-					totalNewComps++;
-
-				}
 			}
 		}
 
@@ -1209,7 +1199,7 @@ function processJSX(stream, props){
 		outputData[p].width = outputBounds[2]-outputBounds[0]; //String(parseInt(outputBounds[2],10)-parseInt(outputBounds[0],10));
 		outputData[p].height = outputBounds[3]-outputBounds[1]; //String(parseInt(outputBounds[3],10)-parseInt(outputBounds[1],10));
 
-		if (!dryRun && !outputData[p].placeholder && (!outputSelected || outputData[p].selected)){
+		if (!dryRun && !outputData[p].placeholder){
 
 			if (!areBoundsEqual(psdBounds, outputData[p].outputBounds)){
 				revertRequired = true;
@@ -1309,10 +1299,7 @@ function processJSX(stream, props){
 			revertSnapshot(doc);
 		}
 
-		if (outputSelected){
-			// Don't optimize if didn't output
-			outputData[p].optimize = false;
-		}
+		
 
 
 		//if (configData && configData.template){
@@ -1500,12 +1487,12 @@ function processJSX(stream, props){
 	function getSelectedLayerLookup(layerRef){
 
 		var lookup = {};
-		if (outputSelected){
-			var selLayers = _getSelectedLayers();
-			for (var zzz = 0; zzz < selLayers.length; zzz++){
-				lookup['name:' + selLayers[zzz].name + ',parent:' + selLayers[zzz].parent.name] = true
-			}
-		}
+	
+		//		var selLayers = _getSelectedLayers();
+		//		for (var zzz = 0; zzz < selLayers.length; zzz++){
+		//			lookup['name:' + selLayers[zzz].name + ',parent:' + selLayers[zzz].parent.name] = true
+		//		}
+
 		return lookup;
 
 	}
