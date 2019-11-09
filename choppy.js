@@ -18,7 +18,6 @@ var Choppy = function() {
 	Choppy.addFilePathsInDirToArray(coreTemplateDirPath, this.templateFilesCore);
 
 	// Get arg
-	this.dryRun = false;
 
 	this.psdPaths = []; // User wants you to open doc if not already open
 	this.verbose = false;
@@ -29,9 +28,7 @@ var Choppy = function() {
 	var argv = {_:process.argv.slice(2)}; //require('minimist')(process.argv.slice(2));
 
 	for (var k = 0; k < argv._.length; k++){
-		if (String(argv._[k]).toLowerCase() === 'dry'){
-			this.dryRun = true;
-		} else if (String(argv._[k]).toLowerCase() === 'verbose'){
+		if (String(argv._[k]).toLowerCase() === 'verbose'){
 			this.verbose = true;
 		} else if (String(argv._[k]).toLowerCase() === 'makecomps'){
 			this.makecomps = true;
@@ -213,7 +210,7 @@ Choppy.prototype.processNext = function() {
 
 		var tplData = self.getTemplateDataFromFiles(self.templateFiles);
 
-		var processStream = photoshop.createStream(processJSX, {tplData:tplData, pathSep:path.sep, baseConfigData:baseConfigData, TEMPLATE_PARTS:self.TEMPLATE_PARTS, dryRun:self.dryRun}).on('data', function(data) {
+		var processStream = photoshop.createStream(processJSX, {tplData:tplData, pathSep:path.sep, baseConfigData:baseConfigData, TEMPLATE_PARTS:self.TEMPLATE_PARTS}).on('data', function(data) {
 
 			var dataStr = data.toString();
 			if (dataStr.substr(0,6) === 'debug:'){
@@ -294,7 +291,7 @@ Choppy.prototype.processNext = function() {
 				// Optimize (on last loop)
 
 				if (rd == responseDataArr.length - 1){ // Last loop only
-					if (!self.dryRun){
+					
 						// Optimize using imageoptim-cli
 						var optimizeFilePaths = [];
 						for (var j = 0; j < responseData.outputData.length; j++){
@@ -335,9 +332,7 @@ Choppy.prototype.processNext = function() {
 						} else {
 							self.onPsdDone();
 						}
-					} else {
-						self.onPsdDone();
-					}
+				
 				}
 
 			}
@@ -500,13 +495,13 @@ function processJSX(stream, props){
 	var pathSep = props.pathSep;
 	var baseConfigData = props.baseConfigData;
 	var TEMPLATE_PARTS = props.TEMPLATE_PARTS;
-	var dryRun = props.dryRun;
+
 
 	//stream.writeln('debug:var tplData=' + JSON.stringify(tplData) +';');
 	//stream.writeln('debug:var pathSep=' + JSON.stringify(pathSep) +';');
 	//stream.writeln('debug:var baseConfigData=' + JSON.stringify(baseConfigData) +';');
 	//stream.writeln('debug:var TEMPLATE_PARTS=' + JSON.stringify(TEMPLATE_PARTS) +';');
-	//stream.writeln('debug:var dryRun=' + JSON.stringify(dryRun) +';');
+
 
 	// The default image prop fallbacks.
 
@@ -768,7 +763,7 @@ function processJSX(stream, props){
 		outputData.reverse();
 	}
 	
-	if (configData.wipeRelativePath.length > 0 && !dryRun){		
+	if (configData.wipeRelativePath.length > 0 ){		
 		var wipeRelativePath = configData.wipeRelativePath;
 		wipeRelativePath = applyVarObjToTemplateString(configData, wipeRelativePath, TEMPLATE_VAR_PRE, TEMPLATE_VAR_POST, 1, []);		
 		wipeRelativePath = ensureDirPathHasTrailingSlash(wipeRelativePath, pathSep);		
@@ -1199,7 +1194,7 @@ function processJSX(stream, props){
 		outputData[p].width = outputBounds[2]-outputBounds[0]; //String(parseInt(outputBounds[2],10)-parseInt(outputBounds[0],10));
 		outputData[p].height = outputBounds[3]-outputBounds[1]; //String(parseInt(outputBounds[3],10)-parseInt(outputBounds[1],10));
 
-		if (!dryRun && !outputData[p].placeholder){
+		if (!outputData[p].placeholder){
 
 			if (!areBoundsEqual(psdBounds, outputData[p].outputBounds)){
 				revertRequired = true;
