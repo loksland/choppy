@@ -320,6 +320,7 @@ Will find and replace matching string in layercomp names and comment fields.
 
 ### Release History ###
 
+- v1.8.2 - Cleaning up dependencies and legacy code.
 - v1.8.1 - Removed legacy `flatten` utility command. Removed legacy `sel` utility command. Removed legacy `dry` utility command. Removed legacy `optimize` property.
 - v1.8.0 - Added `wipeRelativePath`
 - v1.7.9 - Working doc is duplicated so original doc is untouched by processing,

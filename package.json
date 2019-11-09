@@ -1,6 +1,6 @@
 {
   "name": "choppy",
-  "version": "1.8.0",
+  "version": "1.8.2",
   "description": "It slices! It dices!",
   "main": "choppy.js",
   "scripts": {
@@ -28,19 +28,8 @@
   "bin": {
     "choppy": "choppy.js"
   },
-  "devDependencies": {
-    "grunt": "^1.0.1",
-    "grunt-contrib-jshint": "^1.0.0",
-    "grunt-contrib-watch": "^1.0.0"
-  },
+  "devDependencies": {},
   "dependencies": {
-    "grunt": "^1.0.1",
-    "grunt-contrib-jshint": "^1.0.0",
-    "grunt-contrib-watch": "^1.0.0",
-    "imageoptim-cli": "^1.14.8",
     "photoshop": "^0.5.2"
-  },
-  "engines": {
-    "node": "0.10.x"
   }
 }
