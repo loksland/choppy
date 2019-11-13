@@ -51,13 +51,13 @@ Documentation
 -------------
 
 Layer comp naming convention:  
-`[-][<relativePath>]<base>[.][<ext>|<type>]`
+`[-][<relativePath>]<base>[.][<ext>|<type>][(<flag>,<propName>:<propValue>,<propName>:<propValue>...)]`
 
 - Layers prefixed with `-` indicate parent/nest level of the layer comp. Multiple levels supported (eg. `--`,`---`). This will inform the `nestLevel` & `parent` property.
-
+- Props can be defined in brackets as well as comments. A prop declaration without a `:` will be added to the `flags` list.
 Configuration variables are set in the layer comp comment in the following format:  
 ```
-[<alt>] 
+[<alt>]
 <prop_name_1>: <prop_value_1>
 <prop_name_2>: <prop_value_2>
 ...
@@ -180,6 +180,8 @@ Default ''. If `type` is set to `tf`, the style properties of the first visible 
   - `fontStyle` The font style of the text field (Eg. `Regular`,`Bold`,`Italic` etc.)
   - `fontName` The font name, without style. (Eg. `Arial`)
   - `fontSize` The font size, in pts. This value will take into account the global `outputValueFactor` for the document.
+- **flags** (string)    
+Default ''. A comma separated string list. General property that allows extended functionality. Can optionally be set in the layer comp name within brackets. Eg. `basename.png(flag1,flag2 etc)`. 
 
 ### {reg} Layer ###
 
@@ -404,6 +406,7 @@ Will find and replace matching string in layercomp names and comment fields.
 -->
 ### Release History ###
 
+- v1.8.6 - `flags` prop added, shorthand prop definition added.
 - v1.8.5 - Clone PSD name bugfix, layers to comp bounds bugfix.
 - v1.8.4 - Major update. Updated local mod version of `photoshop.invoke(fn, ..)` to accept jsx strings as source. Removed legacy `findandreplace` utility command. Added JSX hook functionality. Overhauled layer comp naming convention, added  `nestlevel`, `parent`, `type`, `tfParams` functionality and documentation. Added `layers-to-comps` pre JSX script.
 - v1.8.3 - Removed legacy `makecomps` utility command. This functionality is better served by a standalone `jsx`.
