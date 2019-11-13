@@ -56,11 +56,15 @@ function createSingleUseTCPStream(config, callback){
 exports.jsxStream = jsxStream
 
 function jsxStream(fn, args, __jsx_prefix__){
+  
+  
   if (typeof fn != 'function') {
     var code = fn;
     fn = Function('STDOUT', transformES6(code));
     fn.__jsx_prefix__ = code.__jsx_prefix__ || __jsx_prefix__;
   }
+
+  
   fn.__jsx_prefix__ = fn.__jsx_prefix__ || __jsx_prefix__;
   var outputPassThrough = createSingleUseTCPStream(function(error, address){
     var result = psEval(applyStream_jsx, [fn, address].concat(args))

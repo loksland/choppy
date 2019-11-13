@@ -5,6 +5,8 @@ module.exports.createStream = function(){
   return extendscriptStream.defineEval(psEval).createStream.apply(extendscriptStream, arguments);
 }
 module.exports.psStream = function(){
+  
+  
   return extendscriptStream.defineEval(psEval).jsxStream.apply(extendscriptStream, arguments);
 }
 

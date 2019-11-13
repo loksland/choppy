@@ -115,8 +115,19 @@ photoshop.invoke = function(fn, args, callback){
     callback = args
     args = []
   }
-  if (!Array.isArray(args)) args = [args]
-  photoshop.run(';try{JSON.stringify({"node-photoshop-result":' + fn + '(' + JSON.stringify(args).replace(/^\[|\]$/g,'') + ')})}catch(e){JSON.stringify({"node-photoshop-error":e})};', function(err, out, error){
+  if (!Array.isArray(args)){
+    args = [args];
+  }
+  
+  if (typeof fn === 'string'){
+    fn = fn.split('#target photoshop').join('')
+    //var standAloneFunctionRegex = /^\s*function(.|\n)*}\s*$/gi; // Basic check
+    //if (!standAloneFunctionRegex.match(fn)){
+    //fn = 'function(){'+fn+'}'
+    //}
+  }
+  var cmd = ';try{JSON.stringify({"node-photoshop-result":' + fn + '(' + JSON.stringify(args).replace(/^\[|\]$/g,'') + ')})}catch(e){JSON.stringify({"node-photoshop-error":e})};';
+  photoshop.run(cmd, function(err, out, error){
     if (err) return callback(err, error || out)
     try { out = JSON.parse(out) }catch(e){}
     var psError = out["node-photoshop-error"]
@@ -133,7 +144,10 @@ photoshop.invoke = function(fn, args, callback){
 var psStream = require('./lib/photoshop-stream').psStream
 
 photoshop.createStream = function(jsx, args){
+  
   return psStream(jsx, args, jsx_header())
+  
+  
 }
 
 function jsx_header(){
