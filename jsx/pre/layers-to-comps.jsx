@@ -14,7 +14,8 @@ if (doc.layerComps.length > 0){
 	throw new Error('(layers-to-comps) Cannot convert layers to comps as existing comp/s already exist.')
 }
 
-deleteAllCommentedLayers(doc);
+deleteAllNonTopLevelCommentedLayers(doc);
+
 setAllLayerVis(doc, false);
 
 var reg = null;
@@ -22,7 +23,11 @@ for (var i = 0; i < doc.layers.length; i++) {
 	
 	var layer = doc.layers[i];
 	
-	if (layer.name == REG_LAYER_NAME){
+	if (IGNORE_PREFIX_CHARS[layer.name.charAt(0)]) {
+		
+		// Ignore
+		
+	} else if (layer.name == REG_LAYER_NAME){
 		
 		reg = layer;
 		
@@ -50,7 +55,9 @@ for (var i = 0; i < doc.layers.length; i++) {
 	
 }
 
-function deleteAllCommentedLayers(ref) {
+function deleteAllNonTopLevelCommentedLayers(ref, _lvl) {
+	
+	_lvl = typeof _lvl !== 'undefined' ? _lvl : 0;
 	
   for (var i = 0; i < ref.layers.length; i++) {
       var layer = ref.layers[i];
@@ -60,9 +67,9 @@ function deleteAllCommentedLayers(ref) {
       		layer.remove();
       		i--;
       	} else {
-      		deleteAllCommentedLayers(layer);
+      		deleteAllNonTopLevelCommentedLayers(layer, _lvl + 1);
       	}
-      } else {
+      } else if (_lvl > 0){ // Don't delete top level layers
       	if (IGNORE_PREFIX_CHARS[layer.name.charAt(0)]){
       		setSelectedLayer(layer.name);
       		layer.remove();

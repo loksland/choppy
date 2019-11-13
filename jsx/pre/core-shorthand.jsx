@@ -36,8 +36,6 @@ for (var i =0; i < doc.layerComps.length; i++){
 	
 }
 
-
-
 function getExt(strPathOrFileName){
 	var ext = '';
 	strPathOrFileName = String(strPathOrFileName);

@@ -441,7 +441,7 @@ function processJSX(stream, props){
 
 	// The default image prop fallbacks.
 
-	var PROP_DEFAULTS = {alt: '', cropToBounds: false, template: 'img', ext: 'jpg', quality: 80, flipX: false, flipY: false, relativePath: './', basePath: './', matte:null, colors:256, scale:1, sizeFileHandle:'', sizeIndex:-1, sizes:null, reg: 'TL', outputValueFactor: 1, regX:0, regY:0, regPercX:0, regPercY:0, forceW:-1, forceH:-1, roundOutputValues:false, boundsComp:'', outputOriginX: 0, outputOriginY: 0, outputOriginLayer:null, placeholder:false, reverseOrder: false, tlX:0, tlY:0, wipeRelativePath: '', pre: '', post:'', parent:'', type:''};
+	var PROP_DEFAULTS = {alt: '', cropToBounds: false, template: 'img', ext: 'jpg', quality: 80, flipX: false, flipY: false, relativePath: './', basePath: './', matte:null, colors:256, scale:1, sizeFileHandle:'', sizeIndex:-1, sizes:null, reg: 'TL', outputValueFactor: 1, regX:0, regY:0, regPercX:0, regPercY:0, forceW:-1, forceH:-1, roundOutputValues:false, boundsComp:'', outputOriginX: 0, outputOriginY: 0, outputOriginLayer:null, placeholder:false, reverseOrder: false, tlX:0, tlY:0, wipeRelativePath: '', pre: '', post:'', parent:'', type:'', tfParams: ''};
 	// Which props are affected by |outputValueFactor|
 	var OUTPUT_VALUE_FACTOR_PROPS = ['width','height','x','y','regX','regY', 'tlX', 'tlY'];
 	var BOOL_PROPS = ['cropToBounds', 'flipX', 'flipY', 'roundOutputValues', 'placeholder', 'reverseOrder'];
@@ -469,7 +469,7 @@ function processJSX(stream, props){
 	// Get psd info
 
 	var psdContainingDir = ensureDirPathHasTrailingSlash(originalDoc.path, pathSep);
-	var psdName = doc.name;
+	var psdName = originalDoc.name;
 	var psdFullName = originalDoc.fullName;
 	var psdBounds = new Array(0,0,doc.width.value,doc.height.value);
 	
@@ -478,6 +478,7 @@ function processJSX(stream, props){
 	var psdNameParts = psdName.split('.');
 	psdNameParts.splice(psdNameParts.length - 1, 1);
 	var psdBase = psdNameParts.join('.');
+
 	PROP_DEFAULTS['psdBase'] = psdBase;
 	PROP_DEFAULTS['psdWidth'] = doc.width.value;
 	PROP_DEFAULTS['psdHeight'] = doc.height.value;
@@ -575,6 +576,8 @@ function processJSX(stream, props){
 				if (compData['relativePath']){
 					compData['relativePath'] = ensureDirPathHasTrailingSlash(compData['relativePath'].split('/').join(pathSep), pathSep);
 				}
+				
+				
 				
 				// The `name` should be the base
 				compData['base'] = layerComp.name; 
@@ -674,7 +677,6 @@ function processJSX(stream, props){
 	if (anyDebugOutput){
 		stream.writeln('debug:*pre* hooks complete OK.');
 	}
-	
 	
 	// Load layercomps w/comments into outputData
 	processLayerComps();
@@ -877,6 +879,8 @@ function processJSX(stream, props){
 		outputData[p].base = cleanUpFileNameBase(outputData[p].base);
 
 		// applyVarObjToTemplateString(obj,str, pre, post, outputValueFactor, OUTPUT_VALUE_FACTOR_PROPS, roundOutputValues){
+		
+
 		outputData[p].relativePath = applyVarObjToTemplateString(outputData[p], outputData[p].relativePath, TEMPLATE_VAR_PRE, TEMPLATE_VAR_POST, outputData[p].outputValueFactor, OUTPUT_VALUE_FACTOR_PROPS, outputData[p].roundOutputValues)
 		
 		// Now you have enough to get src

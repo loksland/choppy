@@ -11,7 +11,8 @@ var processTFs = function(){
 	var doc = app.activeDocument;
 	for (var i =0; i < doc.layerComps.length; i++){
 		var layerComp = doc.layerComps[i];	
-		if (getCommentProp(layerComp, 'type') == 'tf'){
+		var type = getCommentProp(layerComp, 'type');
+		if (type == 'tf' || type == 'btn'){
 			setCommentProp(layerComp, 'placeholder', 'true');
 			layerComp.apply();
 			var tf = getFirstVisibleTextField(doc);
@@ -61,7 +62,6 @@ var processTFs = function(){
 			tfParams.align = desc.getVal(keyList);
 			setCommentProp(layerComp, 'tfParams', JSON.stringify(tfParams));
 			
-			debug(tfParams);
 		}
 		
 	}

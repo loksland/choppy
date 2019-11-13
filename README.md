@@ -404,6 +404,7 @@ Will find and replace matching string in layercomp names and comment fields.
 -->
 ### Release History ###
 
+- v1.8.5 - Clone PSD name bugfix, layers to comp bounds bugfix.
 - v1.8.4 - Major update. Updated local mod version of `photoshop.invoke(fn, ..)` to accept jsx strings as source. Removed legacy `findandreplace` utility command. Added JSX hook functionality. Overhauled layer comp naming convention, added  `nestlevel`, `parent`, `type`, `tfParams` functionality and documentation. Added `layers-to-comps` pre JSX script.
 - v1.8.3 - Removed legacy `makecomps` utility command. This functionality is better served by a standalone `jsx`.
 - v1.8.2 - Cleaning up dependencies and legacy code.
