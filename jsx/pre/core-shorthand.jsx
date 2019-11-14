@@ -67,15 +67,7 @@ for (var i =0; i < doc.layerComps.length; i++){
 	
 }
 
-function getExt(strPathOrFileName){
-	var ext = '';
-	strPathOrFileName = String(strPathOrFileName);
-	var arr = strPathOrFileName.split('.');
-	if (arr.length > 1){
-		ext = arr[arr.length - 1];
-	}
-	return ext;
-}
+
 
 
 

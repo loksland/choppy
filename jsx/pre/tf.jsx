@@ -60,6 +60,9 @@ var processTFs = function(){
 			var keyList = keyString.split('.');
 			
 			tfParams.align = desc.getVal(keyList);
+			if (tfParams.align === null){
+				tfParams.align = 'left'; // Default
+			}
 			setCommentProp(layerComp, 'tfParams', JSON.stringify(tfParams));
 			
 		}

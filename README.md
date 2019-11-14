@@ -50,24 +50,30 @@ Requirements
 Documentation
 -------------
 
-Layer comp naming convention:  
-`[-][<relativePath>]<base>[.][<ext>|<type>][(<flag>,<propName>:<propValue>,<propName>:<propValue>...)]`
-
-- Layers prefixed with `-` indicate parent/nest level of the layer comp. Multiple levels supported (eg. `--`,`---`). This will inform the `nestLevel` & `parent` property.
-- Props can be defined in brackets as well as comments. A prop declaration without a `:` will be added to the `flags` list.
-Configuration variables are set in the layer comp comment in the following format:  
-```
-[<alt>]
-<prop_name_1>: <prop_value_1>
-<prop_name_2>: <prop_value_2>
-...
-```
+**Basic example**
 
 Eg. Layer comp called  
 `img/mypic.png` with comment:
 ```
 alt: A pic I took
 cropToBounds: true
+```
+
+**Layer comp naming format**
+
+`[-][<relativePath>]<base>[.][<ext>|<type>][(<flag>,<propName>:<propValue>,...)]`
+
+- Layers prefixed with `-` indicate parent/nest level of the layer comp. Multiple levels supported (eg. `--`,`---`). This will inform the `nestLevel` & `parent` property.
+- Props can be also be defined in brackets as well as comments. A prop declaration without a `:` will be added to the `flags` list.
+
+**Layer comp comment format**
+
+Configuration variables are set in the layer comp comment in the following format:  
+```
+[<alt>]
+<prop_name_1>: <prop_value_1>
+<prop_name_2>: <prop_value_2>
+...
 ```
 
 **<em>Check out the PSD files in /examples/ to see choppy in action.</em>**
@@ -306,10 +312,21 @@ name of the template.
 - `mytemplate.header.txt`
 Optional. Will be added to the top of the output text. Suitable for instructions, global
 styles etc. Does not swap out variables.
-- `mytemplate.footer.tx`t   
+- `mytemplate.footer.txt`     
 Optional. Will be added to the bottom of the output text. Does not swap out variables.
 - `mytemplate.inter.txt`  
 Optional. Will be added between items. Does not swap out variables.
+- `mytemplate.parse.jsx`  
+Optional. Declare a function called `parse` in a stand alone JSX script file to handle all variables injected into the template. The function takes 2 arguments `propName` and `propVal`. Eg:
+```js 
+// mytemplate.parse.jsx
+function parse(propName, propVal){
+  if (typeof propVal === 'string'){
+    return propVal.toUpperCase();
+  }
+  return propVal;
+}
+```
 
 Command line
 ------------
@@ -354,7 +371,7 @@ Choppy can be extended with custom `.jsx` scripts.
 - `halt` for debugging, set to `true` abort processing immediately after script run
 
 *Available functions:*
-- `debug(obj)` alerts supplied object
+- `console.log(...)` Will output to the current terminal running Choppy  
 - `trim(str)`,`trimStart(str)`,`trimEnd(str)` string trimming functions
 - `setCommentProp(layerComp, propName, propVal)` will edit supplied **layerComp.comment** with property declaration, will overwrite prop if it already exists.
 - `getCommentProp(layerComp, propName)` will return prop defined in **layerComp.comment**, will return null if not set.
@@ -375,7 +392,7 @@ If added to the `pre` queue will try to convert each top-level layer to a layerc
 - `exportDirs` an **array** of **string** paths to each directory that images were saved to during publishing.
 
 *Available functions:*
-- `debug(obj)` alerts supplied object
+- `console.log(...)` Will output to the current terminal running Choppy.
 
 #### `standalone` scripts
 
@@ -406,6 +423,7 @@ Will find and replace matching string in layercomp names and comment fields.
 -->
 ### Release History ###
 
+- v1.8.7 - Custom parse JSX support for templates added.
 - v1.8.6 - `flags` prop added, shorthand prop definition added.
 - v1.8.5 - Clone PSD name bugfix, layers to comp bounds bugfix.
 - v1.8.4 - Major update. Updated local mod version of `photoshop.invoke(fn, ..)` to accept jsx strings as source. Removed legacy `findandreplace` utility command. Added JSX hook functionality. Overhauled layer comp naming convention, added  `nestlevel`, `parent`, `type`, `tfParams` functionality and documentation. Added `layers-to-comps` pre JSX script.

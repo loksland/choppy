@@ -20,7 +20,7 @@ var Choppy = function() {
 	
 	self.TEMPLATE_DIR_NAME = 'tpl';
 	self.CONFIG_FILENAME = '.choppy';
-	self.TEMPLATE_PARTS = ['header', 'main', 'inter', 'footer'];
+	self.TEMPLATE_PARTS = ['parse', 'header', 'main', 'inter', 'footer'];
 
 	// Get the template data from core
 	self.templateFiles = [];
@@ -28,7 +28,7 @@ var Choppy = function() {
 	var coreTemplateDirPath = __dirname + path.sep + self.TEMPLATE_DIR_NAME + path.sep;
 	Choppy.addFilePathsInDirToArray(coreTemplateDirPath, self.templateFilesCore);
 	
-	// Jsx
+	// Jsx (Global)
 	
 	self.JSX_DIR_NAME = 'jsx';
 	
@@ -54,7 +54,6 @@ var Choppy = function() {
 			self.standaloneCmds.push(argv._[k]);
 		}
 	}
-	
 	
 	//if (psdPaths.length === 0){
 	//	psdPaths = ['{active}'];
@@ -214,6 +213,15 @@ Choppy.prototype.processNext = function() {
 			var dataStr = data.toString();
 			if (dataStr.substr(0,6) === 'debug:'){
 				console.log(dataStr.substr(6));
+				
+			} else if (dataStr.substr(0,4) === 'log:'){
+				try {
+					console.log.apply(this, JSON.parse(dataStr.substr(4)))
+				} catch(err) {
+					console.log('Unable to unpack JSX console.log:')
+					console.log(dataStr.substr(4))
+				}
+				
 			} else {
 				responseBuffer += dataStr;
 			}
@@ -310,9 +318,9 @@ Choppy.prototype.getTemplateDataFromFiles = function(filePathArr) {
 		var stats = fs.statSync(tplFilePath);
 		if (!stats.isDirectory()){
 			var tplBaseName = path.basename(tplFilePath, path.extname(tplFilePath));
-
+			
 			if (tplBaseName.charAt(0) !== '.'){
-				var contents = fs.readFileSync(tplFilePath, 'utf8');
+				
 				var part = 'main';
 				if (tplBaseName.split('.').length !== 1){
 					for (var i = 0; i < this.TEMPLATE_PARTS.length; i++){
@@ -323,12 +331,18 @@ Choppy.prototype.getTemplateDataFromFiles = function(filePathArr) {
 						}
 					}
 				}
+				
 				if (!tplData[tplBaseName]){
 					tplData[tplBaseName] = {};
 				}
 
 				if (!tplData[tplBaseName][part]){
-					tplData[tplBaseName][part] = contents;
+					if (part == 'parse'){
+						tplData[tplBaseName][part] = tplFilePath;
+					} else {
+						var contents = fs.readFileSync(tplFilePath, 'utf8');
+						tplData[tplBaseName][part] = contents;
+					}
 				} else {
 					throw new Error('Template part already defined');
 				}
@@ -406,11 +420,13 @@ function ensurePsdIsActiveDocumentJSX(targetPath, sep){
 
 }
 
-
-
 function processJSX(stream, props){
 	
-
+	var console = {};
+	console.log = function(){
+		stream.writeln('log:'+JSON.stringify(arguments));
+	}
+	
 	// If a layer comp or layer starts with this char then they will not be included in operatios
 	var IGNORE_PREFIX_CHARS = {'`':true};
 
@@ -727,6 +743,13 @@ function processJSX(stream, props){
 		output.push({});
 		templatePartsAdded.push({});
 	}
+
+	// Cache custom template `parse` functions 
+	var templateParseFnCache = {};
+	
+	
+
+
 
 
 	var p;
@@ -1221,32 +1244,55 @@ function processJSX(stream, props){
 			var templateIsRawString = template.split(TEMPLATE_VAR_PRE).length > 1 && template.split(TEMPLATE_VAR_POST).length > 1;
 
 			var templateFound = false;
-
+			
 			if (tplData[template] !== undefined){
+				
 				for (var t = 0; t < TEMPLATE_PARTS.length; t++){
-					var part = TEMPLATE_PARTS[t];
+					var part = TEMPLATE_PARTS[t];					
+					
 					if (tplData[template][part] !== undefined){
-						if (output[ote][part] === undefined){
-							output[ote][part] = [];
-						}
-						templateFound = true;
-						if (part == 'main'){
-							var mainData = applyVarObjToTemplateString(outputData[p], tplData[template][part], TEMPLATE_VAR_PRE, TEMPLATE_VAR_POST, outputData[p].outputValueFactor, OUTPUT_VALUE_FACTOR_PROPS, outputData[p].roundOutputValues);
-							if (tplData[template]['inter'] !== undefined && p > 0){
-								mainData = tplData[template]['inter'] + mainData;
-							}
-							output[ote][part].push(mainData);
-						} else if (part != 'inter'){
-							// Only output once
-							var templatePartID = template + ':' + part;
-							if (!templatePartsAdded[ote][templatePartID]){
-								var templateContent = tplData[template][part];
-								if (configData){
-									templateContent = applyVarObjToTemplateString(configData, templateContent, TEMPLATE_VAR_PRE, TEMPLATE_VAR_POST, 1, []);
+					
+						if (part == 'parse'){
+							
+							// Load function if needed and cache for next output item
+							if (typeof templateParseFnCache[template] === 'undefined'){
+								
+								var parse = null;
+								$.evalFile(tplData[template][part]);		
+								if (parse === null){
+									throw new Error('Custom `parse` function not found at `'+tplData[template][part]+'`')
 								}
-								output[ote][part].push(templateContent);
-								templatePartsAdded[ote][templatePartID] = true;
+								templateParseFnCache[template] = parse; 
+								
 							}
+							
+						} else {
+							
+			
+						 	
+							if (output[ote][part] === undefined){
+								output[ote][part] = [];
+							}
+							templateFound = true;
+							if (part == 'main'){								
+								var mainData = applyVarObjToTemplateString(outputData[p], tplData[template][part], TEMPLATE_VAR_PRE, TEMPLATE_VAR_POST, outputData[p].outputValueFactor, OUTPUT_VALUE_FACTOR_PROPS, outputData[p].roundOutputValues, templateParseFnCache[template]);
+								if (tplData[template]['inter'] !== undefined && p > 0){
+									mainData = tplData[template]['inter'] + mainData;
+								}
+								output[ote][part].push(mainData);
+							} else if (part != 'inter'){
+								// Only output once
+								var templatePartID = template + ':' + part;
+								if (!templatePartsAdded[ote][templatePartID]){
+									var templateContent = tplData[template][part];
+									if (configData){
+										templateContent = applyVarObjToTemplateString(configData, templateContent, TEMPLATE_VAR_PRE, TEMPLATE_VAR_POST, 1, [], false, templateParseFnCache[template]);
+									}
+									output[ote][part].push(templateContent);
+									templatePartsAdded[ote][templatePartID] = true;
+								}
+							}
+							
 						}
 					}
 				}
@@ -1278,6 +1324,8 @@ function processJSX(stream, props){
 
 	for (var ote = 0; ote < outputTemplates.length; ote++){
 
+		
+
 		// Make output out of template data
 		var outputString = '';
 		for (var t = 0; t < TEMPLATE_PARTS.length; t++){
@@ -1290,12 +1338,12 @@ function processJSX(stream, props){
 		var outputFilePath = '';
 		var outputTags = {};
 		if (configData && configData.outputFilePath && configData.outputFilePath[ote].length > 0){
-
+			
 			configData.basePath = ensureDirPathHasTrailingSlash(configData.basePath, pathSep);
 
 			// You can inject config props into this path
 			var injectedOutputFilePath = applyVarObjToTemplateString(configData, configData.outputFilePath[ote], TEMPLATE_VAR_PRE, TEMPLATE_VAR_POST, 1, []);
-
+									
 			outputFilePath = configData.basePath + injectedOutputFilePath; //configData.outputFilePath;
 			if (configData.outputTagStart && configData.outputTagEnd && configData.outputTagStart[ote].length > 0 && configData.outputTagEnd[ote].length > 0){
 				outputTags = {start:configData.outputTagStart[ote], end:configData.outputTagEnd[ote]};
@@ -1314,6 +1362,7 @@ function processJSX(stream, props){
 	}
 	
 	// Call `post` hooks
+	
 	var anyDebugOutput = false;
 	for (var i = 0; i < post.length; i++){
 		var jsxScriptName = post[i];
@@ -1347,10 +1396,8 @@ function processJSX(stream, props){
 
 	// JSX functions
 	// -------------
+	
 
-	
-	
-	
 	// folderRef = Folder(pathDocSrc.fullName.parent + '/' + docBaseName + '/' + IMG_FOLDER_NAME);
 	function deleteImgsFromDir(dir){
 	    if (!dir.exists){
@@ -1416,6 +1463,16 @@ function processJSX(stream, props){
 		} : null;
 	}
 
+	function getExt(strPathOrFileName){
+		var ext = '';
+		strPathOrFileName = String(strPathOrFileName);
+		var arr = strPathOrFileName.split('.');
+		if (arr.length > 1){
+			ext = arr[arr.length - 1];
+		}
+		return ext;
+	}
+	
 	function cleanUpFileNameBase(base){
 
 		//base = base.toLowerCase();
@@ -1717,7 +1774,9 @@ function processJSX(stream, props){
 
 	}
 
-	function applyVarObjToTemplateString(obj,str, pre, post, outputValueFactor, OUTPUT_VALUE_FACTOR_PROPS, roundOutputValues){
+	function applyVarObjToTemplateString(obj,str, pre, post, outputValueFactor, OUTPUT_VALUE_FACTOR_PROPS, roundOutputValues, parseFn){
+
+		parseFn = typeof parseFn === 'function' ? parseFn : null;
 
 		str = String(str);
 		var outputValueFactorPropsLookup = '#' + OUTPUT_VALUE_FACTOR_PROPS.join('#') + '#';
@@ -1729,6 +1788,10 @@ function processJSX(stream, props){
 				if (roundOutputValues){
 					val = Math.round(val);
 				}
+			}
+			
+			if (parseFn !== null){
+				val = parseFn(p, val);
 			}
 
 			str = str.split(pre+p+post).join(val);
