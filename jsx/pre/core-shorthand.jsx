@@ -8,8 +8,6 @@ var doc = app.activeDocument;
 for (var i =0; i < doc.layerComps.length; i++){
 	var layerComp = doc.layerComps[i];
 	
-	
-	
 	// Shorthand props and flags in brackets
 	
 	var flags = [];
@@ -35,14 +33,12 @@ for (var i =0; i < doc.layerComps.length; i++){
 		setCommentProp(layerComp, 'flags', flags.join(','));
 	}
 	
-	
 	// Extension
 
 	var outputNameExt = getExt(layerComp.name).toLowerCase();
 	if (outputNameExt.length > 0){
 		if (VALID_OUTPUT_EXTS.indexOf(outputNameExt) > -1){
-			setCommentProp(layerComp, 'ext', outputNameExt);			
-			setCommentProp(layerComp, 'type', 'img');
+			setCommentProp(layerComp, 'ext', outputNameExt);						
 		} else {
 			if (outputNameExt == 'div'){
 				setCommentProp(layerComp, 'placeholder', 'true');		

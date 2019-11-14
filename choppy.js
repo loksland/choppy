@@ -593,7 +593,9 @@ function processJSX(stream, props){
 					compData['relativePath'] = ensureDirPathHasTrailingSlash(compData['relativePath'].split('/').join(pathSep), pathSep);
 				}
 				
-				
+				if (!compData['placeholder'] && (!compData['type'] || compData['type'].length == 0)){
+					compData['type'] = 'img';
+				}
 				
 				// The `name` should be the base
 				compData['base'] = layerComp.name; 
@@ -934,7 +936,7 @@ function processJSX(stream, props){
 		outputData[p].relativePath = outputData[p].relativePath.split(SIZE_FILEHANDLE_PLACEHOLDER).join('');
 
 		outputData[p].srcFileName = outputData[p].base + '.' + outputData[p].ext;
-		outputData[p].src = outputData[p].relativePath + outputData[p].srcFileName;
+		outputData[p].src = outputData[p].placeholder ? '' : outputData[p].relativePath + outputData[p].srcFileName;
 		outputData[p].exportPath = psdContainingDir + outputData[p].basePath + outputData[p].relativePath + outputData[p].srcFileName;
 		
 		// Save a running list of all export directory paths

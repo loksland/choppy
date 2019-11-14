@@ -423,6 +423,7 @@ Will find and replace matching string in layercomp names and comment fields.
 -->
 ### Release History ###
 
+- v1.8.8 - `type` set to `img` for non placeholders. `src` set to '' for placeholders.
 - v1.8.7 - Custom parse JSX support for templates added.
 - v1.8.6 - `flags` prop added, shorthand prop definition added.
 - v1.8.5 - Clone PSD name bugfix, layers to comp bounds bugfix.
