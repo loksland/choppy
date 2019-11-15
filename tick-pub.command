@@ -34,8 +34,15 @@ VERSION_PREV=$(cat package.json \
   | sed 's/[",]//g')
 
 # Tick the package version 
-VERSION_NEXT=$(npm version patch)
+VERSION_NEXT=$(npm version patch --no-git-tag-version)
 VERSION_NEXT=$(echo $VERSION_NEXT | cut -c 2-)
+
+if [[ ${#VERSION_NEXT}  == 0 ]]; then
+  echo -e "${RED}Npm version patch failed.${NC}"
+  exit 0
+fi
+
+
 
 # Update change log doc
 
