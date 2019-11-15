@@ -362,7 +362,7 @@ Choppy can be extended with custom `.jsx` scripts.
 - **after** working copy PSD duplication
 - **after** loading the `{choppy}` layer comp data
 - **after** deleting `{choppy}` layer comp and comment layer comps
-- **after** comps are cleaned up: white-space removed, comment props lowercased, duplicate comment props removed, empty comment lines removed
+- **after** comps are cleaned up: white-space removed, duplicate comment props removed, empty comment lines removed
 - **after** comp names have resolved to be the same as the comp `base`
 - **before** processing other layer comps
 
@@ -406,80 +406,7 @@ $ choppy %standalone_script_name_1% [%standalone_script_name_2%]
 *Available vars/functions:*
 - None
 
-<!--
-Utility commands
-----------------
 
-*Additional helper commands. Images will not be outputted when these processes run*
-
-**Find and replace**
-
-```bash
-$ choppy findandreplace "string find" "replace with this"
-```
-
-Will find and replace matching string in layercomp names and comment fields.
-
--->
 ### Release History ###
 
-- v1.8.8 - `type` set to `img` for non placeholders. `src` set to '' for placeholders.
-- v1.8.7 - Custom parse JSX support for templates added.
-- v1.8.6 - `flags` prop added, shorthand prop definition added.
-- v1.8.5 - Clone PSD name bugfix, layers to comp bounds bugfix.
-- v1.8.4 - Major update. Updated local mod version of `photoshop.invoke(fn, ..)` to accept jsx strings as source. Removed legacy `findandreplace` utility command. Added JSX hook functionality. Overhauled layer comp naming convention, added  `nestlevel`, `parent`, `type`, `tfParams` functionality and documentation. Added `layers-to-comps` pre JSX script.
-- v1.8.3 - Removed legacy `makecomps` utility command. This functionality is better served by a standalone `jsx`.
-- v1.8.2 - Cleaning up dependencies and legacy code.
-- v1.8.1 - Removed legacy `flatten` utility command. Removed legacy `sel` utility command. Removed legacy `dry` utility command. Removed legacy `optimize` property. This functionality is better served by a standalone `jsx`.
-- v1.8.0 - Added `wipeRelativePath`
-- v1.7.9 - Working doc is duplicated so original doc is untouched by processing, `relativePath` now supports dynamic props, such as `%psdBase%`
-- v1.7.8 - Added `psdWidth` and `psdHeight` var constants.
-- v1.7.7 - Support for `Photoshop 2019` added
-- v1.7.5 - Simplified command arg parsing to fix `-` prefixed params.
-- v1.7.4 - Hard coded edit to possibly abandoned dependency `photoshop` v0.5.2 to include support for `Photoshop 2018` in `photoshop-0.5.2-edit/photoshop/lib/photoshop-eval.js`
-- v1.7.3 - Fixed typo in documentation
-- v1.7.2 - Extended AppleScript timeout in hardcoded dependency `photoshop` to 10 mins
-- v1.7.1 - Hard coded edit to possibly abandoned dependency `photoshop` v0.5.2 to include support for `Photoshop 2017`
-- v1.7.0 - Updated dependencies
-- v1.6.8 - Documentation update
-- v1.6.8 - Multi template support,  |reverseOrder| {choppy} comp var |tlX| and |tlY| output props added. Made '.choppy' config file and |basePath| optional (defaults to "./")  
-- v1.6.7 - %base% prop incorporates size file handle
-- v1.6.6 - Allow text suffix of {reg} layer
-- v1.6.4 - Reg str bugfix
-- v1.6.3 - Coord support for |reg| property
-- v1.6.2 - |placeholder| export
-- v1.6.1 - Select mode bugfix
-- v1.5.8 - |findandreplace| utility
-- v1.5.7 - Added |outputOriginX|, |outputOriginY| and |outputOriginLayer| props
-- v1.5.5 - Added |boundsComp| feature. Bounds caching introduced.
-- v1.5.4 - |roundOutputValues| added. Supporting new line '\t' for inline defined templates
-- v1.5.3 - Supporting new line '\n' for inline defined templates
-- v1.5.2 - Added width and height params to force output dimensions
-- v1.5.1 - Added 'makecomps' utility command, ignore backtick prefixed layers and comps
-- v1.5.0 - Added 'flatten' utility command
-- v1.4.9 - Active doc bugfix
-- v1.4.8 - Relative psd path bugfix
-- v1.4.5 - Relative psd paths accepted
-- v1.4.4 - 'Verbose' arg added, provide PSD paths in command line args. Optimise bugfix.
-- v1.4.3 - Fixed transform warning when reporting active psd
-- v1.3.4 - Additional var |psdBase|. Enabled var swap out for |outputFilePath| prop. Template
-header and footer has props swapped out with core config data.
-- v1.3.3 - Fixed dry run with scale bug. Applied scale to reg pt values. Addded
-|outputValueFactor| prop.
-- v1.3.2 - Scale is applied to reg pts and x,y position
-- v1.3.2 - Reg point bugfix
-- v1.3.1 - Reg point support through {reg} layer and |reg| layer property
-- v1.3.0 - Multiple size output support
-- v1.2.2 - Scale outputting
-- v1.2.0 - Major update with support for cropping layers nested in sets and masks.  
-Visible bounds calculation bugfix.
-- v1.1.3 - Fix crop bounds to within doc
-- v1.1.2 - More descriptive error messages
-- v1.1.1 - Width result bugfix
-- v1.1.0 - Dependency fix
-- v1.0.8 - Sel command line arg to output selected comps only, multiple layer bounds bugfix
-- v1.0.7 - Image optimisation added (for Mac)
-- v1.0.6 - Export gifs with matte and color options
-- v1.0.5 - Dry run mode
-- v1.0.4 – Injecting into output file tags
-- v1.0.3 – Added template fields |x| and |y|
+[CHANGELOG.md](docs/CHANGELOG.md)
