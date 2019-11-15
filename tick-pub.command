@@ -61,6 +61,7 @@ while read a; do
 
 done < "$CHANGELOG_DOC_PATH" > "$CHANGELOG_DOC_PATH.tmp" # Work with tmp file
 
+# Check to see changelog was updated successfully
 if [[ $FOUND_PREV_LOG == 0 ]]; then
   echo -e "${RED}Failed to find previous changelog entry${NC}"
   echo -e "${YELLOW}${PREV_LOG_LINE_PREFIX}${NC}"

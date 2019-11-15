@@ -1,5 +1,6 @@
 # Changelog
 
+- v1.8.11 - (15-11-2019) Testing publish script
 - v1.8.10 - (15-11-2019) Updated publish script.
 - v1.8.9 - Updated publishing script.
 - v1.8.8 - `type` set to `img` for non placeholders. `src` set to '' for placeholders.
