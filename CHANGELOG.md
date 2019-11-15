@@ -19,7 +19,7 @@
 - v1.7.1 - Hard coded edit to possibly abandoned dependency `photoshop` v0.5.2 to include support for `Photoshop 2017`
 - v1.7.0 - Updated dependencies
 - v1.6.8 - Documentation update
-- v1.6.8 - Multi template support,  |reverseOrder| {choppy} comp var |tlX| and |tlY| output props added. Made '.choppy' config file and |basePath| optional (defaults to "./")  
+- v1.6.8 - Multi template support,  |reverseOrder| {choppy} comp var |tlX| and |tlY| output props added. Made '.choppy' config file and |basePath| optional (defaults to "./")
 - v1.6.7 - %base% prop incorporates size file handle
 - v1.6.6 - Allow text suffix of {reg} layer
 - v1.6.4 - Reg str bugfix
@@ -29,8 +29,8 @@
 - v1.5.8 - |findandreplace| utility
 - v1.5.7 - Added |outputOriginX|, |outputOriginY| and |outputOriginLayer| props
 - v1.5.5 - Added |boundsComp| feature. Bounds caching introduced.
-- v1.5.4 - |roundOutputValues| added. Supporting new line '\t' for inline defined templates
-- v1.5.3 - Supporting new line '\n' for inline defined templates
+- v1.5.4 - |roundOutputValues| added. Supporting new line 't' for inline defined templates
+- v1.5.3 - Supporting new line 'n' for inline defined templates
 - v1.5.2 - Added width and height params to force output dimensions
 - v1.5.1 - Added 'makecomps' utility command, ignore backtick prefixed layers and comps
 - v1.5.0 - Added 'flatten' utility command
@@ -48,7 +48,7 @@ header and footer has props swapped out with core config data.
 - v1.3.1 - Reg point support through {reg} layer and |reg| layer property
 - v1.3.0 - Multiple size output support
 - v1.2.2 - Scale outputting
-- v1.2.0 - Major update with support for cropping layers nested in sets and masks.  
+- v1.2.0 - Major update with support for cropping layers nested in sets and masks.
 Visible bounds calculation bugfix.
 - v1.1.3 - Fix crop bounds to within doc
 - v1.1.2 - More descriptive error messages
