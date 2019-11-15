@@ -1,5 +1,8 @@
 # Changelog
 
+- v1.8.10 - (15-11-2019) Updating publish script
+- v1.8.10 - (15-11-2019) Updated publish script.
+- v1.8.9 - Updated publishing script.
 - v1.8.8 - `type` set to `img` for non placeholders. `src` set to '' for placeholders.
 - v1.8.7 - Custom parse JSX support for templates added.
 - v1.8.6 - `flags` prop added, shorthand prop definition added.

@@ -13,7 +13,7 @@ if [ -z "$(git status --porcelain)" ]; then  # No commits
   
   # Use prev commit comment as changelog entry
   PRE_COMMIT_COMMENT=$(git log -1 --pretty=%B)
-  echo -e "${GREEN}Exitting - no uncommitted changes.${NC}"
+  echo -e "${YELLOW}Exitting - no uncommitted changes.${NC}"
   exit 0
   
 else 
@@ -32,6 +32,7 @@ VERSION_PREV=$(cat package.json \
   | head -1 \
   | awk -F: '{ print $2 }' \
   | sed 's/[",]//g')
+VERSION_PREV="$(echo -e "${VERSION_PREV}" | tr -d '[:space:]')" # Strip whitespace
 
 # Tick the package version 
 VERSION_NEXT=$(npm version patch --no-git-tag-version)
@@ -42,24 +43,32 @@ if [[ ${#VERSION_NEXT}  == 0 ]]; then
   exit 0
 fi
 
-
-
 # Update change log doc
 
 DATE=$(date +"%d-%m-%Y") # Get date string
 PREV_LOG_LINE_PREFIX="- v$VERSION_PREV"
 LOG_LINE="- v$VERSION_NEXT - ($DATE) $LOG_MESSAGE"
 
-
 echo -e "${YELLOW}${LOG_LINE}${NC}"
 
+FOUND_PREV_LOG=0
 while read a; do
     if [[ $a == "$PREV_LOG_LINE_PREFIX"* ]]; then # If line starts with previous log message prefix
+      FOUND_PREV_LOG=1
       echo "$LOG_LINE" # Add new log message 
     fi
     echo "$a"
 
 done < "$CHANGELOG_DOC_PATH" > "$CHANGELOG_DOC_PATH.tmp" # Work with tmp file
+
+if [[ $FOUND_PREV_LOG == 0 ]]; then
+  echo -e "${RED}Failed to find previous changelog entry${NC}"
+  echo -e "${YELLOW}${PREV_LOG_LINE_PREFIX}${NC}"
+  
+  rm "$CHANGELOG_DOC_PATH.tmp"
+  exit 0
+fi
+
 mv "$CHANGELOG_DOC_PATH.tmp" "$CHANGELOG_DOC_PATH"
 
 # Commit and push GIT 
