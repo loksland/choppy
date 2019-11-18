@@ -170,7 +170,7 @@ occur.
 - **nestlevel** (int)    
 Default 0. The nest level of the layer comp. Can be set by prefixing layer comp name with `-`,`--` etc. 
 - **parent** (string)  
-Default ''. The `base` name of the layer comp's parent. Will be auto filled if **nestLevel** is set. This does not affect image publish.
+Default ''. The `base` name of the layer comp's parent. Will be auto filled if **nestLevel** is set. This does not affect image publish. If set the `x` and `y` coords will be relative to the parent's origin point.
 - **type** (string)  
 Default ''. General property that allows extended functionality. Can optionally be set like an extension in the layer comp name. Eg. `basename.<type>`. Built in types include:
   - `div` If applied will set `placholder` property to `true`.
@@ -409,4 +409,4 @@ $ choppy %standalone_script_name_1% [%standalone_script_name_2%]
 
 ### Release History ###
 
-[CHANGELOG.md](docs/CHANGELOG.md)
+[CHANGELOG.md](CHANGELOG.md)

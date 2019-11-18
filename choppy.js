@@ -1228,18 +1228,43 @@ function processJSX(stream, props){
 
 			}
 		}
-
+		
 		if (revertRequired){
-
 			revertSnapshot(doc);
 		}
 
+	}
+	
+	
+	// Make each child x,y relative to parent's x,y
+	
+	var nestLookup = [];
+	for (var mm = 0; mm < outputData.length; mm++){
+		if (!nestLookup[outputData[mm].nestlevel]){
+			nestLookup[outputData[mm].nestlevel] = {};
+		}
+		nestLookup[outputData[mm].nestlevel][outputData[mm].base] = mm;
+	}
+	if (nestLookup.length > 1){
+		for (var nn = nestLookup.length - 1; nn >= 1; nn--){
+			for (var base in nestLookup[nn]){
+				var child = outputData[nestLookup[nn][base]];
+				var parent = outputData[nestLookup[nn-1][child.parent]];
+				outputData[nestLookup[nn][base]].x -= parent.x;
+				outputData[nestLookup[nn][base]].y -= parent.y;
+			}
+		}
+	}
+	
+	
+	// Inject output data into template 
+	
+	for (p = 0; p < outputData.length; p++){
+		
 		var compTemplateSplit = outputData[p].template.split(TEMPLATE_MULTI_SEP);
 		if (compTemplateSplit.length != outputTemplates.length){
 			throw new Error('Layer comp template list must be same length as config comp');
 		}
-
-
 		for (var ote = 0; ote < compTemplateSplit.length; ote++){
 
 			var template = compTemplateSplit[ote]; // from config
@@ -1270,8 +1295,6 @@ function processJSX(stream, props){
 							
 						} else {
 							
-			
-						 	
 							if (output[ote][part] === undefined){
 								output[ote][part] = [];
 							}
@@ -1311,8 +1334,11 @@ function processJSX(stream, props){
 		}
 
 	}
-
-
+	
+	
+	
+	
+	
 	// Revert doc
 	revertSnapshot(doc);
 	
@@ -1325,8 +1351,6 @@ function processJSX(stream, props){
 	// Loop templates
 
 	for (var ote = 0; ote < outputTemplates.length; ote++){
-
-		
 
 		// Make output out of template data
 		var outputString = '';

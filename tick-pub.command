@@ -84,9 +84,10 @@ npm publish
 
 echo -e "${GREEN}Published to NPM.${NC}"
 
-#VERSION=$(npm version patch)
-#VERSION=$(echo $VERSION | cut -c 2-)
-#echo $VERSION
+# End of publish script.
+# Perform any additional operations below.
+
+npm install choppy -g
   
 $SHELL
 
