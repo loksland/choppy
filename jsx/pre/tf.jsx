@@ -52,7 +52,7 @@ var processTFs = function(){
 			
 			tfParams.fontStyle = style;
 			tfParams.fontName = font;
-			tfParams.fontSize = size*configData.outputValueFactor;
+			tfParams.fontSize = size; //*configData.outputValueFactor;
 			
 			// 3/3) Get paragraph alignment
 			

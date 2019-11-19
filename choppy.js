@@ -213,13 +213,12 @@ Choppy.prototype.processNext = function() {
 			var dataStr = data.toString();
 			if (dataStr.substr(0,6) === 'debug:'){
 				console.log(dataStr.substr(6));
-				
 			} else if (dataStr.substr(0,4) === 'log:'){
 				try {
 					console.log.apply(this, JSON.parse(dataStr.substr(4)))
 				} catch(err) {
-					console.log('Unable to unpack JSX console.log:')
-					console.log(dataStr.substr(4))
+					// console.log('Unable to unpack JSX console.log:')
+					//console.log(dataStr.substr(5))
 				}
 				
 			} else {
@@ -457,11 +456,15 @@ function processJSX(stream, props){
 
 	// The default image prop fallbacks.
 
-	var PROP_DEFAULTS = {alt: '', cropToBounds: false, template: 'img', ext: 'jpg', quality: 80, flipX: false, flipY: false, relativePath: './', basePath: './', matte:null, colors:256, scale:1, sizeFileHandle:'', sizeIndex:-1, sizes:null, reg: 'TL', outputValueFactor: 1, regX:0, regY:0, regPercX:0, regPercY:0, forceW:-1, forceH:-1, roundOutputValues:false, boundsComp:'', outputOriginX: 0, outputOriginY: 0, outputOriginLayer:null, placeholder:false, reverseOrder: false, tlX:0, tlY:0, wipeRelativePath: '', pre: '', post:'', parent:'', type:'', tfParams: '', flags: ''};
+	var PROP_DEFAULTS = {alt: '', cropToBounds: false, template: 'img', ext: 'jpg', quality: 80, flipX: false, flipY: false, relativePath: './', basePath: './', matte:null, colors:256, scale:1, sizeFileHandle:'', sizeIndex:-1, sizes:null, reg: 'TL', outputValueFactor: 1, regX:0, regY:0, regPercX:0, regPercY:0, forceW:-1, forceH:-1, roundOutputValues:false, boundsComp:'', outputOriginX: 0, outputOriginY: 0, outputOriginLayer:null, placeholder:false, reverseOrder: false, tlX:0, tlY:0, wipeRelativePath: '', pre: '', post:'', parent:'', type:'', tfParams: null, flags: ''};
+	// If obj prop is not set, below will be used as sub prop defaults, should they be referenced by a template
+	var OBJ_PROP_DEFAULTS = {tfParams: {align:'',text:'',font:'',alpha:1.0, color:'#000000',fontStyle:'',fontName:'',fontSize:''}}
+	
 	// Which props are affected by |outputValueFactor|
-	var OUTPUT_VALUE_FACTOR_PROPS = ['width','height','x','y','regX','regY', 'tlX', 'tlY'];
+	var OUTPUT_VALUE_FACTOR_PROPS = ['width','height','x','y','regX','regY', 'tlX', 'tlY', 'tfParams.fontSize'];
 	var BOOL_PROPS = ['cropToBounds', 'flipX', 'flipY', 'roundOutputValues', 'placeholder', 'reverseOrder'];
 	var NUM_PROPS = ['quality','scale','forceW','forceH', 'outputOriginX', 'outputOriginX', 'tlX', 'tlY', 'nestlevel'];
+	var OBJ_PROPS = ['tfParams'];
 	var NEWLINE_PROPS = ['template'];
 	// These will have a trailing slash added if needed.
 	var DIR_PROPS = ['relativePath', 'basePath'];
@@ -481,7 +484,6 @@ function processJSX(stream, props){
 	var DEFAULT_PRE = ['cleanup-comps','nestlevel-shorthand','core-shorthand','parent-from-nestlevel','tf']; 
 	var DEFAULT_POST = []; 
 	
-
 	// Get psd info
 
 	var psdContainingDir = ensureDirPathHasTrailingSlash(originalDoc.path, pathSep);
@@ -559,7 +561,7 @@ function processJSX(stream, props){
 							while(varVal.charAt(0) === ' '){
 								varVal = varVal.substr(1);
 							}
-							// Boolean
+							
 							if (BOOL_PROPS.indexOf(varName) >= 0){
 								var tmpVarVal = varVal.toLowerCase(0);
 								varVal = false;
@@ -574,6 +576,12 @@ function processJSX(stream, props){
 							} else if (NEWLINE_PROPS.indexOf(varName) >= 0){
 								varVal =  String(varVal).split('\\n').join('\n');
 								varVal =  String(varVal).split('\\t').join('\t');
+							} else if (OBJ_PROPS.indexOf(varName) >= 0){
+								try {
+									varVal = JSON.parse(varVal);								
+								} catch(err) {
+									varVal = PROP_DEFAULTS[varName]
+								}
 							}
 							
 							compData[varName] = varVal;
@@ -611,7 +619,6 @@ function processJSX(stream, props){
 				} else {
 
 					compData.selected = layerComp.selected;
-
 					outputData.push(compData);
 
 				}
@@ -749,10 +756,6 @@ function processJSX(stream, props){
 	// Cache custom template `parse` functions 
 	var templateParseFnCache = {};
 	
-	
-
-
-
 
 	var p;
 	for (p = 0; p < outputData.length; p++){
@@ -1255,7 +1258,6 @@ function processJSX(stream, props){
 			}
 		}
 	}
-	
 	
 	// Inject output data into template 
 	
@@ -1800,14 +1802,22 @@ function processJSX(stream, props){
 
 	}
 
-	function applyVarObjToTemplateString(obj,str, pre, post, outputValueFactor, OUTPUT_VALUE_FACTOR_PROPS, roundOutputValues, parseFn){
-
+	function applyVarObjToTemplateString(obj, str, pre, post, outputValueFactor, OUTPUT_VALUE_FACTOR_PROPS, roundOutputValues, parseFn, propPrefix){
+		
+		propPrefix = typeof propPrefix !== 'undefined' ? propPrefix : '';
+		
 		parseFn = typeof parseFn === 'function' ? parseFn : null;
 
 		str = String(str);
 		var outputValueFactorPropsLookup = '#' + OUTPUT_VALUE_FACTOR_PROPS.join('#') + '#';
 		for (var p in obj) {
+			
 			var val = obj[p];
+			var individualP = p;
+			var p = propPrefix + p;
+			
+			var isObjProp = isNonArrObj(val) && OBJ_PROPS.indexOf(p) >= 0;
+			
 			// Apply value factor to applicable props
 			if (outputValueFactorPropsLookup.split('#'+p+ '#').length === 2){
 				val = Number(val) * outputValueFactor;
@@ -1816,15 +1826,31 @@ function processJSX(stream, props){
 				}
 			}
 			
+			if (isObjProp){
+				if (val == null){
+					str = applyVarObjToTemplateString(OBJ_PROP_DEFAULTS[p], str, pre, post, outputValueFactor, OUTPUT_VALUE_FACTOR_PROPS, roundOutputValues, parseFn, propPrefix + p + '.')
+					val = '';
+				} else {
+					// Loop children of obj prop
+					str = applyVarObjToTemplateString(val, str, pre, post, outputValueFactor, OUTPUT_VALUE_FACTOR_PROPS, roundOutputValues, parseFn, propPrefix + p + '.')
+					val = JSON.stringify(val); // If trying to output the object itself then provide as JSON encoded string]
+				} 
+			}
+			
 			if (parseFn !== null){
 				val = parseFn(p, val);
 			}
 
 			str = str.split(pre+p+post).join(val);
+			
 		}
 		return str;
 	}
-
+	
+	function isNonArrObj(obj){
+		return typeof obj === 'object' && !Array.isArray(obj)
+	}
+	
 	function rasterizeVectorMask() {
 		try{
 			var id488 = stringIDToTypeID( "rasterizeLayer" );

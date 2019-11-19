@@ -176,7 +176,7 @@ Default ''. General property that allows extended functionality. Can optionally 
   - `div` If applied will set `placholder` property to `true`.
   - `tf` If applied will set `placholder` property to `true` and output `tfParams` (below).
   - `btn` An alias for `tf`
-- **tfParams** (JSON string representation of Object)  
+- **tfParams** (Object)  
 Default ''. If `type` is set to `tf`, the style properties of the first visible text field will be set to this field encoded to a JSON string. 
   - `align` The horizontal alignment of the text field (`left`|`center`|`right`)
   - `text` The text content of the field
@@ -185,7 +185,7 @@ Default ''. If `type` is set to `tf`, the style properties of the first visible 
   - `color` The hex representation of the text color (Eg. `#FF3300`)
   - `fontStyle` The font style of the text field (Eg. `Regular`,`Bold`,`Italic` etc.)
   - `fontName` The font name, without style. (Eg. `Arial`)
-  - `fontSize` The font size, in pts. This value will take into account the global `outputValueFactor` for the document.
+  - `fontSize` The font size, in pts. This value will take into account the `outputValueFactor`.
 - **flags** (string)    
 Default ''. A comma separated string list. General property that allows extended functionality. Can optionally be set in the layer comp name within brackets. Eg. `basename.png(flag1,flag2 etc)`. 
 
