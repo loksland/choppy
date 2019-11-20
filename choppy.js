@@ -578,7 +578,7 @@ function processJSX(stream, props){
 								varVal =  String(varVal).split('\\t').join('\t');
 							} else if (OBJ_PROPS.indexOf(varName) >= 0){
 								try {
-									varVal = JSON.parse(varVal);								
+									var varVal = JSON.parse(varVal);			
 								} catch(err) {
 									varVal = PROP_DEFAULTS[varName]
 								}
@@ -908,7 +908,6 @@ function processJSX(stream, props){
 
 		// applyVarObjToTemplateString(obj,str, pre, post, outputValueFactor, OUTPUT_VALUE_FACTOR_PROPS, roundOutputValues){
 		
-
 		outputData[p].relativePath = applyVarObjToTemplateString(outputData[p], outputData[p].relativePath, TEMPLATE_VAR_PRE, TEMPLATE_VAR_POST, outputData[p].outputValueFactor, OUTPUT_VALUE_FACTOR_PROPS, outputData[p].roundOutputValues)
 		
 		// Now you have enough to get src
@@ -1301,7 +1300,7 @@ function processJSX(stream, props){
 								output[ote][part] = [];
 							}
 							templateFound = true;
-							if (part == 'main'){								
+							if (part == 'main'){					
 								var mainData = applyVarObjToTemplateString(outputData[p], tplData[template][part], TEMPLATE_VAR_PRE, TEMPLATE_VAR_POST, outputData[p].outputValueFactor, OUTPUT_VALUE_FACTOR_PROPS, outputData[p].roundOutputValues, templateParseFnCache[template]);
 								if (tplData[template]['inter'] !== undefined && p > 0){
 									mainData = tplData[template]['inter'] + mainData;
@@ -1330,6 +1329,7 @@ function processJSX(stream, props){
 				if (output[ote]['main'] === undefined){
 					output[ote]['main'] = [];
 				}
+		
 				output[ote]['main'].push(applyVarObjToTemplateString(outputData[p], template, TEMPLATE_VAR_PRE, TEMPLATE_VAR_POST, outputData[p].outputValueFactor, OUTPUT_VALUE_FACTOR_PROPS, outputData[p].roundOutputValues));
 			}
 
@@ -1370,6 +1370,7 @@ function processJSX(stream, props){
 			configData.basePath = ensureDirPathHasTrailingSlash(configData.basePath, pathSep);
 
 			// You can inject config props into this path
+	
 			var injectedOutputFilePath = applyVarObjToTemplateString(configData, configData.outputFilePath[ote], TEMPLATE_VAR_PRE, TEMPLATE_VAR_POST, 1, []);
 									
 			outputFilePath = configData.basePath + injectedOutputFilePath; //configData.outputFilePath;
@@ -1807,7 +1808,7 @@ function processJSX(stream, props){
 		propPrefix = typeof propPrefix !== 'undefined' ? propPrefix : '';
 		
 		parseFn = typeof parseFn === 'function' ? parseFn : null;
-
+		
 		str = String(str);
 		var outputValueFactorPropsLookup = '#' + OUTPUT_VALUE_FACTOR_PROPS.join('#') + '#';
 		for (var p in obj) {
@@ -1819,6 +1820,7 @@ function processJSX(stream, props){
 			var isObjProp = isNonArrObj(val) && OBJ_PROPS.indexOf(p) >= 0;
 			
 			// Apply value factor to applicable props
+			
 			if (outputValueFactorPropsLookup.split('#'+p+ '#').length === 2){
 				val = Number(val) * outputValueFactor;
 				if (roundOutputValues){
@@ -1827,14 +1829,46 @@ function processJSX(stream, props){
 			}
 			
 			if (isObjProp){
-				if (val == null){
-					str = applyVarObjToTemplateString(OBJ_PROP_DEFAULTS[p], str, pre, post, outputValueFactor, OUTPUT_VALUE_FACTOR_PROPS, roundOutputValues, parseFn, propPrefix + p + '.')
+				
+				// Build a dupe of the object for manipulating and exporting (without affecting subsequent outputting)
+				var _val = {}
+				if (val !== null){
+					for (var f in val){
+						_val[f] = val[f];
+					}
+				}
+				
+				// Build prop to be injected into dot notation references
+				var valWithDefaults = dupeObj(_val);
+				
+				for (var pp in OBJ_PROP_DEFAULTS[p]){
+					var dotSyntaxName = p + '.' + pp;
+					// Populate with all props present
+					if (typeof valWithDefaults[pp] === 'undefined'){
+						valWithDefaults[pp] = OBJ_PROP_DEFAULTS[p][pp]
+					}
+					// Apply output value factor 	
+					if (outputValueFactorPropsLookup.split('#'+dotSyntaxName+ '#').length === 2){// XXX: 
+						
+						valWithDefaults[pp] = Number(valWithDefaults[pp]) * outputValueFactor;
+						if (roundOutputValues){
+							valWithDefaults[pp] = Math.round(valWithDefaults[pp]);
+						}
+						// If whole prop has this subprop then apply the value factor altered value to it as well.
+						if (_val && typeof _val === 'object' && typeof _val[pp] !== 'undefined'){ 
+							_val[pp] = valWithDefaults[pp];
+						}
+					}	
+				}
+				
+				str = applyVarObjToTemplateString(valWithDefaults, str, pre, post, 1.0, [], false, parseFn, propPrefix + p + '.')
+				
+				if (!_val){
 					val = '';
-				} else {
-					// Loop children of obj prop
-					str = applyVarObjToTemplateString(val, str, pre, post, outputValueFactor, OUTPUT_VALUE_FACTOR_PROPS, roundOutputValues, parseFn, propPrefix + p + '.')
-					val = JSON.stringify(val); // If trying to output the object itself then provide as JSON encoded string]
-				} 
+				} else {				
+					val = JSON.stringify(_val); // If trying to output the object itself then provide as JSON encoded string]
+				}
+				
 			}
 			
 			if (parseFn !== null){

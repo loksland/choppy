@@ -1,5 +1,6 @@
 # Changelog
 
+- v1.8.14 - (21-11-2019) Fixed tf output value factor bug.
 - v1.8.13 - (19-11-2019) Added the ability for obj props with default sub-props and dot notatation access from template.
 - v1.8.12 - (18-11-2019) Child (nested) items will be outputted with x,y relative to parent.
 - v1.8.11 - (15-11-2019) Testing publish script
