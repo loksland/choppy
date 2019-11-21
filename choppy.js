@@ -1832,8 +1832,10 @@ function processJSX(stream, props){
 				
 				// Build a dupe of the object for manipulating and exporting (without affecting subsequent outputting)
 				var _val = {}
+				var valSet = false;
 				if (val !== null){
 					for (var f in val){
+						valSet = true;
 						_val[f] = val[f];
 					}
 				}
@@ -1863,7 +1865,7 @@ function processJSX(stream, props){
 				
 				str = applyVarObjToTemplateString(valWithDefaults, str, pre, post, 1.0, [], false, parseFn, propPrefix + p + '.')
 				
-				if (!_val){
+				if (!valSet){
 					val = '';
 				} else {				
 					val = JSON.stringify(_val); // If trying to output the object itself then provide as JSON encoded string]

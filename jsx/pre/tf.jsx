@@ -13,58 +13,62 @@ var processTFs = function(){
 		var layerComp = doc.layerComps[i];	
 		var type = getCommentProp(layerComp, 'type');
 		if (type == 'tf' || type == 'btn'){
+			
 			setCommentProp(layerComp, 'placeholder', 'true');
 			layerComp.apply();
 			var tf = getFirstVisibleTextField(doc);
 			if (!tf){
+				//if (type != 'btn'){ // Buttons may not have a text field.
 				throw new Error('(tf) Text field not found.');
-			}
+				//}
+			} else {
 			
-			// 1/3)
-			// See: _2_CSS.jsx `cssToClip.getTextLayerCSS = function(` ...
-			
-			var tfParams = {};
-			tfParams.text = tf.textItem.contents
-			tfParams.font = tf.textItem.font
-			//tfParams.fontSize = tf.textItem.size
-			tfParams.alpha = Math.round((tf.opacity*tf.fillOpacity)/100.0)/100.0;
-			tfParams.color = '#' + tf.textItem.color.rgb.hexValue
-			// NOTE: background layers will break indexing
-						
-			// 2/3) Get deeper font info.
-			// See: https://github.com/hecht-software/psd-to-html-exporter/blob/master/psd-to-html-exporter.jsx
-			
-	    app.activeDocument.activeLayer = tf;
+				// 1/3)
+				// See: _2_CSS.jsx `cssToClip.getTextLayerCSS = function(` ...
 				
-			var ref = new ActionReference();
-			ref.putEnumerated(sTID("layer"), cTID("Ordn"), cTID("Trgt"));
-			var desc = executeActionGet(ref);
+				var tfParams = {};
+				tfParams.text = tf.textItem.contents
+				tfParams.font = tf.textItem.font
+				//tfParams.fontSize = tf.textItem.size
+				tfParams.alpha = Math.round((tf.opacity*tf.fillOpacity)/100.0)/100.0;
+				tfParams.color = '#' + tf.textItem.color.rgb.hexValue
+				// NOTE: background layers will break indexing
+							
+				// 2/3) Get deeper font info.
+				// See: https://github.com/hecht-software/psd-to-html-exporter/blob/master/psd-to-html-exporter.jsx
+				
+		    app.activeDocument.activeLayer = tf;
+					
+				var ref = new ActionReference();
+				ref.putEnumerated(sTID("layer"), cTID("Ordn"), cTID("Trgt"));
+				var desc = executeActionGet(ref);
+				
+				var list = desc.getObjectValue(cTID("Txt ")) ;
+		    var tsr = list.getList(cTID("Txtt"));
 			
-			var list = desc.getObjectValue(cTID("Txt ")) ;
-	    var tsr = list.getList(cTID("Txtt"));
-		
-			var   tsr0 = tsr.getObjectValue(0)
-	               , pts = cTID("#Pnt")
-	               , textStyle = tsr0.getObjectValue(cTID("TxtS"))
-	               , font = textStyle.getString(cTID("FntN" ))
-	               , style = textStyle.getString(cTID("FntS"))
-								 , size = textStyle.getUnitDoubleValue(cTID("Sz  ", pts))
+				var   tsr0 = tsr.getObjectValue(0)
+		               , pts = cTID("#Pnt")
+		               , textStyle = tsr0.getObjectValue(cTID("TxtS"))
+		               , font = textStyle.getString(cTID("FntN" ))
+		               , style = textStyle.getString(cTID("FntS"))
+									 , size = textStyle.getUnitDoubleValue(cTID("Sz  ", pts))
+				
+				tfParams.fontStyle = style;
+				tfParams.fontName = font;
+				tfParams.fontSize = size; //*configData.outputValueFactor;
+				
+				// 3/3) Get paragraph alignment
+				
+				var keyString = "textKey.paragraphStyleRange.paragraphStyle.align"
+				var keyList = keyString.split('.');
+				
+				tfParams.align = desc.getVal(keyList);
+				if (tfParams.align === null){
+					tfParams.align = 'left'; // Default
+				}
+				setCommentProp(layerComp, 'tfParams', JSON.stringify(tfParams));
 			
-			tfParams.fontStyle = style;
-			tfParams.fontName = font;
-			tfParams.fontSize = size; //*configData.outputValueFactor;
-			
-			// 3/3) Get paragraph alignment
-			
-			var keyString = "textKey.paragraphStyleRange.paragraphStyle.align"
-			var keyList = keyString.split('.');
-			
-			tfParams.align = desc.getVal(keyList);
-			if (tfParams.align === null){
-				tfParams.align = 'left'; // Default
 			}
-			setCommentProp(layerComp, 'tfParams', JSON.stringify(tfParams));
-			
 		}
 		
 	}
