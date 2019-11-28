@@ -1,5 +1,6 @@
 # Changelog
 
+- v1.8.16 - (28-11-2019) Added `rect` type with placeholder output.
 - v1.8.15 - (21-11-2019) Fixed obj prop fallback output to be a blank string.
 - v1.8.14 - (21-11-2019) Fixed tf output value factor bug.
 - v1.8.13 - (19-11-2019) Added the ability for obj props with default sub-props and dot notatation access from template.

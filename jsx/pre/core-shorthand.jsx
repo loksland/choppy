@@ -40,7 +40,7 @@ for (var i =0; i < doc.layerComps.length; i++){
 		if (VALID_OUTPUT_EXTS.indexOf(outputNameExt) > -1){
 			setCommentProp(layerComp, 'ext', outputNameExt);						
 		} else {
-			if (outputNameExt == 'div'){
+			if (outputNameExt == 'div' || outputNameExt == 'rect'){
 				setCommentProp(layerComp, 'placeholder', 'true');		
 			}
 			setCommentProp(layerComp, 'type', outputNameExt);
