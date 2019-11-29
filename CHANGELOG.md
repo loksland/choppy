@@ -1,5 +1,6 @@
 # Changelog
 
+- v1.8.18 - (29-11-2019) Textfield visible bounds added.
 - v1.8.17 - (28-11-2019) Properly escaping special chars in JSON parsing.
 - v1.8.16 - (28-11-2019) Added `rect` type with placeholder output.
 - v1.8.15 - (21-11-2019) Fixed obj prop fallback output to be a blank string.

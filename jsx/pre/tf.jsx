@@ -22,13 +22,25 @@ var processTFs = function(){
 				throw new Error('(tf) Text field not found.');
 				//}
 			} else {
-			
+				
 				// 1/3)
 				// See: _2_CSS.jsx `cssToClip.getTextLayerCSS = function(` ...
 				
 				var tfParams = {};
+				
+				// Save the visible bounds 
+				
+				var tfVisBounds = getLayerBoundsRect(tf);
+				
+				tfParams.visBoundsTLX = tfVisBounds.x;
+				tfParams.visBoundsTLY = tfVisBounds.y;
+				tfParams.visBoundsW = tfVisBounds.width;
+				tfParams.visBoundsH = tfVisBounds.height;
+				
+				
 				tfParams.text = tf.textItem.contents
 				tfParams.font = tf.textItem.font
+				
 				//tfParams.fontSize = tf.textItem.size
 				tfParams.alpha = Math.round((tf.opacity*tf.fillOpacity)/100.0)/100.0;
 				tfParams.color = '#' + tf.textItem.color.rgb.hexValue
@@ -187,6 +199,7 @@ ActionList.prototype.getFlatType = function( index )
 
 // `ref` can be document or layer group
 // Will return null if not found.
+
 function getFirstVisibleTextField(ref) {
 		
     var len = ref.layers.length;
@@ -204,6 +217,22 @@ function getFirstVisibleTextField(ref) {
 		
 		return null;
 		
+}
+
+function getLayerBoundsRect(layer){
+	
+	var tlXi = 0;
+	var tlYi = 1;
+	var brXi = 2;
+	var brYi = 3;
+	
+	return {
+		x: layer.bounds[tlXi].value,
+		y: layer.bounds[tlYi].value,
+		width: layer.bounds[brXi].value-layer.bounds[tlXi].value,
+		height: layer.bounds[brYi].value-layer.bounds[tlYi].value
+	}
+	
 }
 
 processTFs();

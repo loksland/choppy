@@ -186,6 +186,7 @@ Default ''. If `type` is set to `tf`, the style properties of the first visible 
   - `fontStyle` The font style of the text field (Eg. `Regular`,`Bold`,`Italic` etc.)
   - `fontName` The font name, without style. (Eg. `Arial`)
   - `fontSize` The font size, in pts. This value will take into account the `outputValueFactor`.
+  - `visBoundsTLX`,`visBoundsTLY`,`visBoundsW`,`visBoundsH` The visible bounds of the text field, position is relative to the layer.
 - **flags** (string)    
 Default ''. A comma separated string list. General property that allows extended functionality. Can optionally be set in the layer comp name within brackets. Eg. `basename.png(flag1,flag2 etc)`. 
 
