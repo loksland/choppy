@@ -42,6 +42,8 @@ var Choppy = function() {
 	self.psdPaths = []; // User wants you to open doc if not already open
 	self.verbose = false;
 	
+	self.envVars = {};
+	
 	var argv = {_:process.argv.slice(2)}; //require('minimist')(process.argv.slice(2));
 	
 	self.standaloneCmds = [];
@@ -50,6 +52,9 @@ var Choppy = function() {
 			self.verbose = true;
 		} else if (path.extname(String(argv._[k])).toLowerCase() === '.psd'){
 			self.psdPaths.push(argv._[k]);
+		} else if (argv._[k].split('=').length == 2){
+			var varParts = argv._[k].split('=')
+			self.envVars[varParts[0]] = varParts[1];
 		} else {
 			self.standaloneCmds.push(argv._[k]);
 		}
@@ -208,7 +213,7 @@ Choppy.prototype.processNext = function() {
 
 		var tplData = self.getTemplateDataFromFiles(self.templateFiles);
 			
-		var processStream = photoshop.createStream(processJSX, {tplData:tplData, pathSep:path.sep, baseConfigData:baseConfigData, TEMPLATE_PARTS:self.TEMPLATE_PARTS, jsxPaths:self.jsxPaths}).on('data', function(data) {
+		var processStream = photoshop.createStream(processJSX, {tplData:tplData, pathSep:path.sep, baseConfigData:baseConfigData, TEMPLATE_PARTS:self.TEMPLATE_PARTS, jsxPaths:self.jsxPaths, envVars:self.envVars}).on('data', function(data) {
 
 			var dataStr = data.toString();
 			if (dataStr.substr(0,6) === 'debug:'){
@@ -444,9 +449,8 @@ function processJSX(stream, props){
 	var baseConfigData = props.baseConfigData;
 	var TEMPLATE_PARTS = props.TEMPLATE_PARTS;
 	var jsxPaths = props.jsxPaths;
+	var envVars = props.envVars;
 	
-	
-
 
 	//stream.writeln('debug:var tplData=' + JSON.stringify(tplData) +';');
 	//stream.writeln('debug:var pathSep=' + JSON.stringify(pathSep) +';');

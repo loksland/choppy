@@ -348,6 +348,14 @@ $ choppy path/**/mypics*.psd
 ```
 Paths can be relative to pwd or absolute
 
+Command line environment variables:
+```bash
+$ choppy varA="foo" varB="bar"
+```
+
+These will be saved to the `envVars` object that is accessible to jsx scripts.
+
+
 ### JSX Processing Scripts
 
 Choppy can be extended with custom `.jsx` scripts. 
