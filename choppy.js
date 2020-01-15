@@ -15,8 +15,14 @@ var Choppy = function() {
 	}`,[], function(error){		
 	})
 	
-	
 	var self = this;
+	
+	var now = new Date();
+	var nowDate = now.getFullYear()+'-'+(now.getMonth()+1)+'-'+now.getDate();
+	var nowTime = now.getHours() + ":" + now.getMinutes() + ":" + now.getSeconds();
+	self.pubtime = nowDate+' '+nowTime; // `2018-8-3 11:12:40`
+	
+	
 	
 	self.TEMPLATE_DIR_NAME = 'tpl';
 	self.CONFIG_FILENAME = '.choppy';
@@ -213,7 +219,7 @@ Choppy.prototype.processNext = function() {
 
 		var tplData = self.getTemplateDataFromFiles(self.templateFiles);
 			
-		var processStream = photoshop.createStream(processJSX, {tplData:tplData, pathSep:path.sep, baseConfigData:baseConfigData, TEMPLATE_PARTS:self.TEMPLATE_PARTS, jsxPaths:self.jsxPaths, envVars:self.envVars}).on('data', function(data) {
+		var processStream = photoshop.createStream(processJSX, {tplData:tplData, pathSep:path.sep, baseConfigData:baseConfigData, TEMPLATE_PARTS:self.TEMPLATE_PARTS, jsxPaths:self.jsxPaths, envVars:self.envVars, pubtime: self.pubtime}).on('data', function(data) {
 
 			var dataStr = data.toString();
 			if (dataStr.substr(0,6) === 'debug:'){
@@ -450,17 +456,16 @@ function processJSX(stream, props){
 	var TEMPLATE_PARTS = props.TEMPLATE_PARTS;
 	var jsxPaths = props.jsxPaths;
 	var envVars = props.envVars;
-	
+	var pubtime = props.pubtime;
 
 	//stream.writeln('debug:var tplData=' + JSON.stringify(tplData) +';');
 	//stream.writeln('debug:var pathSep=' + JSON.stringify(pathSep) +';');
 	//stream.writeln('debug:var baseConfigData=' + JSON.stringify(baseConfigData) +';');
 	//stream.writeln('debug:var TEMPLATE_PARTS=' + JSON.stringify(TEMPLATE_PARTS) +';');
 
-
 	// The default image prop fallbacks.
 
-	var PROP_DEFAULTS = {alt: '', cropToBounds: false, template: 'img', ext: 'jpg', quality: 80, flipX: false, flipY: false, relativePath: './', basePath: './', matte:null, colors:256, scale:1, sizeFileHandle:'', sizeIndex:-1, sizes:null, reg: 'TL', outputValueFactor: 1, regX:0, regY:0, regPercX:0, regPercY:0, forceW:-1, forceH:-1, roundOutputValues:false, boundsComp:'', outputOriginX: 0, outputOriginY: 0, outputOriginLayer:null, placeholder:false, reverseOrder: false, tlX:0, tlY:0, wipeRelativePath: '', pre: '', post:'', parent:'', type:'', tfParams: null, flags: ''};
+	var PROP_DEFAULTS = {alt: '', cropToBounds: false, template: 'img', ext: 'jpg', quality: 80, flipX: false, flipY: false, relativePath: './', basePath: './', matte:null, colors:256, scale:1, sizeFileHandle:'', sizeIndex:-1, sizes:null, reg: 'TL', outputValueFactor: 1, regX:0, regY:0, regPercX:0, regPercY:0, forceW:-1, forceH:-1, roundOutputValues:false, boundsComp:'', outputOriginX: 0, outputOriginY: 0, outputOriginLayer:null, placeholder:false, reverseOrder: false, tlX:0, tlY:0, wipeRelativePath: '', pre: '', post:'', parent:'', type:'', tfParams: null, flags: '', pubtime: pubtime};
 	// If obj prop is not set, below will be used as sub prop defaults, should they be referenced by a template
 	var OBJ_PROP_DEFAULTS = {tfParams: {align:'',text:'',font:'',alpha:1.0, color:'#000000',fontStyle:'',fontName:'',fontSize:'', visBoundsTLX:0, visBoundsTLY:0, visBoundsW:0,visBoundsH:0}}; // 
 	

@@ -1,5 +1,6 @@
 # Changelog
 
+- v1.8.20 - (15-01-2020) Added pubtime prop, a timestamp of the current time.
 - v1.8.19 - (06-12-2019) Command line environment variables added.
 - v1.8.18 - (29-11-2019) Textfield visible bounds added.
 - v1.8.17 - (28-11-2019) Properly escaping special chars in JSON parsing.

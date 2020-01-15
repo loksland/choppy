@@ -189,6 +189,8 @@ Default ''. If `type` is set to `tf`, the style properties of the first visible 
   - `visBoundsTLX`,`visBoundsTLY`,`visBoundsW`,`visBoundsH` The visible bounds of the text field, position is relative to the layer.
 - **flags** (string)    
 Default ''. A comma separated string list. General property that allows extended functionality. Can optionally be set in the layer comp name within brackets. Eg. `basename.png(flag1,flag2 etc)`. 
+- **pubtime** (string)  
+The publish date and time, eg. `2018-8-3 11:12:40`
 
 ### {reg} Layer ###
 
