@@ -465,7 +465,7 @@ function processJSX(stream, props){
 
 	// The default image prop fallbacks.
 
-	var PROP_DEFAULTS = {alt: '', cropToBounds: false, template: 'img', ext: 'jpg', quality: 80, flipX: false, flipY: false, relativePath: './', basePath: './', matte:null, colors:256, scale:1, sizeFileHandle:'', sizeIndex:-1, sizes:null, reg: 'TL', outputValueFactor: 1, regX:0, regY:0, regPercX:0, regPercY:0, forceW:-1, forceH:-1, roundOutputValues:false, boundsComp:'', outputOriginX: 0, outputOriginY: 0, outputOriginLayer:null, placeholder:false, reverseOrder: false, tlX:0, tlY:0, wipeRelativePath: '', pre: '', post:'', parent:'', type:'', tfParams: null, flags: '', pubtime: pubtime};
+	var PROP_DEFAULTS = {alt: '', cropToBounds: false, template: 'img', ext: 'jpg', quality: 80, flipX: false, flipY: false, relativePath: './', basePath: './', matte:null, colors:256, scale:1, sizeFileHandle:'', sizeIndex:-1, sizes:null, reg: 'TL', outputValueFactor: 1, regX:0, regY:0, regPercX:0, regPercY:0, forceW:-1, forceH:-1, roundOutputValues:false, boundsComp:'', outputOriginX: 0, outputOriginY: 0, outputOriginLayer:null, placeholder:false, reverseOrder: false, tlX:0, tlY:0, wipeRelativePath: '', pre: '', post:'', parent:'', type:'', tfParams: null, flags: '', pubtime: pubtime, suffix:'',prefix:''};
 	// If obj prop is not set, below will be used as sub prop defaults, should they be referenced by a template
 	var OBJ_PROP_DEFAULTS = {tfParams: {align:'',text:'',font:'',alpha:1.0, color:'#000000',fontStyle:'',fontName:'',fontSize:'', visBoundsTLX:0, visBoundsTLY:0, visBoundsW:0,visBoundsH:0}}; // 
 	
@@ -509,7 +509,6 @@ function processJSX(stream, props){
 	PROP_DEFAULTS['psdBase'] = psdBase;
 	PROP_DEFAULTS['psdWidth'] = doc.width.value;
 	PROP_DEFAULTS['psdHeight'] = doc.height.value;
-	
 	
 	if (!doc){
 		throw new Error('No PSD document open.')
@@ -614,7 +613,11 @@ function processJSX(stream, props){
 					compData['type'] = 'img';
 				}
 				
-				// The `name` should be the base
+				// The `name` should be the base now. 
+				//if (!configMode && layerComp.name !== CONFIG_LAYERCOMP_NAME){
+				//	layerComp.name = compData['prefix'] + layerComp.name + configData['suffix']
+				//}
+				
 				compData['base'] = layerComp.name; 
 				
 				compData.layerCompRef = layerComp;
@@ -661,6 +664,8 @@ function processJSX(stream, props){
 	}
 	// Apply defaults to config so they can extend each output img.
 	configData = extendObjWithDefaults(configData, PROP_DEFAULTS);
+	
+	
 	
 	// Read local pre/post JSX script names (based on {choppy} layer (and .choppy json))  
 	
@@ -768,10 +773,13 @@ function processJSX(stream, props){
 
 	var p;
 	for (p = 0; p < outputData.length; p++){
-
+		
 		outputData[p] = extendObjWithDefaults(outputData[p], configData);
 		// Enforce own "!" props.
 		outputData[p] = extendObjWithDefaults(outputData[p], outputData[p]);
+		
+		// Apply prefix and suffix
+		outputData[p].base = outputData[p].prefix + outputData[p].base + outputData[p].suffix
 
 		// Look for multiple sizes and create new virtual layerComps for these
 		if (outputData[p].sizes) {

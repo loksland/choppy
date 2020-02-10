@@ -59,8 +59,6 @@ for (var i =0; i < doc.layerComps.length; i++){
 		layerComp.name = layerComp.name.substr(relativePath.length);
 	}
 	
-
-	
 }
 
 

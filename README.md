@@ -187,10 +187,13 @@ Default ''. If `type` is set to `tf`, the style properties of the first visible 
   - `fontName` The font name, without style. (Eg. `Arial`)
   - `fontSize` The font size, in pts. This value will take into account the `outputValueFactor`.
   - `visBoundsTLX`,`visBoundsTLY`,`visBoundsW`,`visBoundsH` The visible bounds of the text field, position is relative to the layer.
+- **prefix** (string)
+Will be added to start of layer comp names at start of string. Default ''.
+- **suffix** (string)
+Will be added to end of layer comp names at start of string. Default ''.
 - **flags** (string)    
 Default ''. A comma separated string list. General property that allows extended functionality. Can optionally be set in the layer comp name within brackets. Eg. `basename.png(flag1,flag2 etc)`. 
-- **pubtime** (string)  
-The publish date and time, eg. `2018-8-3 11:12:40`
+
 
 ### {reg} Layer ###
 
@@ -301,6 +304,8 @@ The relative reg point as a percentage value of the pic dimensions. Eg. (0,0) is
 The base filename of the current PSD doc.
 - **psdWidth**, **psdHeight**
 The width of the PSD (in pixels)
+- **pubtime** (string)  
+The publish date and time, eg. `2018-8-3 11:12:40`
 
 ### Format ###
 - %varname%
