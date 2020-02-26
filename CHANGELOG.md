@@ -1,5 +1,6 @@
 # Changelog
 
+- v1.8.22 - (26-02-2020) Added `makeDir` property and documentation.
 - v1.8.21 - (10-02-2020) Added `prefix` and `suffix` string props.
 - v1.8.20 - (15-01-2020) Added pubtime prop, a timestamp of the current time.
 - v1.8.19 - (06-12-2019) Command line environment variables added.

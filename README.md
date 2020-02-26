@@ -193,7 +193,8 @@ Will be added to start of layer comp names at start of string. Default ''.
 Will be added to end of layer comp names at start of string. Default ''.
 - **flags** (string)    
 Default ''. A comma separated string list. General property that allows extended functionality. Can optionally be set in the layer comp name within brackets. Eg. `basename.png(flag1,flag2 etc)`. 
-
+- **makeDir** (boolean)  
+If set to true will attempt to create the export directory if it doesn't exist. Only the last directory in path will be made.
 
 ### {reg} Layer ###
 

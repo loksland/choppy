@@ -470,8 +470,8 @@ function processJSX(stream, props){
 	var OBJ_PROP_DEFAULTS = {tfParams: {align:'',text:'',font:'',alpha:1.0, color:'#000000',fontStyle:'',fontName:'',fontSize:'', visBoundsTLX:0, visBoundsTLY:0, visBoundsW:0,visBoundsH:0}}; // 
 	
 	// Which props are affected by |outputValueFactor|
-	var OUTPUT_VALUE_FACTOR_PROPS = ['width','height','x','y','regX','regY', 'tlX', 'tlY', 'tfParams.fontSize', 'tfParams.visBoundsTLX', 'tfParams.visBoundsTLY', 'tfParams.visBoundsW', 'tfParams.visBoundsH']; // 
-	var BOOL_PROPS = ['cropToBounds', 'flipX', 'flipY', 'roundOutputValues', 'placeholder', 'reverseOrder'];
+	var OUTPUT_VALUE_FACTOR_PROPS = ['width','height','x','y','regX','regY', 'tlX', 'tlY', 'tfParams.fontSize', 'tfParams.visBoundsTLX', 'tfParams.visBoundsTLY', 'tfParams.visBoundsW', 'tfParams.visBoundsH','makeDir']; // 
+	var BOOL_PROPS = ['cropToBounds', 'flipX', 'flipY', 'roundOutputValues', 'placeholder', 'reverseOrder', 'makeDir'];
 	var NUM_PROPS = ['quality','scale','forceW','forceH', 'outputOriginX', 'outputOriginX', 'tlX', 'tlY', 'nestlevel'];
 	var OBJ_PROPS = ['tfParams'];
 	var NEWLINE_PROPS = ['template'];
@@ -958,6 +958,15 @@ function processJSX(stream, props){
 		outputData[p].src = outputData[p].placeholder ? '' : outputData[p].relativePath + outputData[p].srcFileName;
 		outputData[p].exportPath = psdContainingDir + outputData[p].basePath + outputData[p].relativePath + outputData[p].srcFileName;
 		
+		if (outputData[p].makeDir){
+			var containingDir = new Folder(psdContainingDir + outputData[p].basePath + outputData[p].relativePath);
+			if (!containingDir.exists){
+				containingDir.create();
+			}
+		}
+		
+		
+		
 		// Save a running list of all export directory paths
 		var exportDirPath = psdContainingDir + outputData[p].basePath + outputData[p].relativePath;
 		if (!exportDirsTaken[exportDirPath]){
@@ -965,11 +974,11 @@ function processJSX(stream, props){
 			exportDirsTaken[exportDirPath] = true;
 		}
 		
-
 		// outputOriginLayer
 		// -----------------
 
 		if (outputData[p].outputOriginLayer != null && outputData[p].outputOriginLayer.length > 0){
+			
 			if (layerBoundsCacheLayers[outputData[p].outputOriginLayer]){
 
 				outputData[p].outputOriginX = layerBoundsCacheLayers[outputData[p].outputOriginLayer][0];
@@ -1015,8 +1024,7 @@ function processJSX(stream, props){
 				}
 			}
 		}
-
-
+		
 		// boundsComp
 		// ----------
 
@@ -1232,7 +1240,9 @@ function processJSX(stream, props){
 			} else {
 				throw new Error('Export format "'+outputData[p].ext+'" not found.');
 			}
+			
 
+			
 			doc.exportDocument(new File(outputData[p].exportPath), ExportType.SAVEFORWEB, exportOptions);
 
 		} else {
