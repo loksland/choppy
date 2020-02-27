@@ -234,6 +234,8 @@ The output prop |index| will output in ascending order whether reversed or not.
 If set to a relative path, all images at this location will be deleted before running the output. Also accepts a comma separated list.
 - **pre**, **post** (string)
 Optionally set a comma separated list of JSX command names (see `JSX Processing Scripts` below). 
+- **postExecutePath** (string)   
+Will execute file located at path provided, relative to PSD doc. This will be called after any post jsx commands. Accepts comma separated list.
 
 ### Base config file ###
 

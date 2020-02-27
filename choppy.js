@@ -470,7 +470,7 @@ function processJSX(stream, props){
 	var OBJ_PROP_DEFAULTS = {tfParams: {align:'',text:'',font:'',alpha:1.0, color:'#000000',fontStyle:'',fontName:'',fontSize:'', visBoundsTLX:0, visBoundsTLY:0, visBoundsW:0,visBoundsH:0}}; // 
 	
 	// Which props are affected by |outputValueFactor|
-	var OUTPUT_VALUE_FACTOR_PROPS = ['width','height','x','y','regX','regY', 'tlX', 'tlY', 'tfParams.fontSize', 'tfParams.visBoundsTLX', 'tfParams.visBoundsTLY', 'tfParams.visBoundsW', 'tfParams.visBoundsH','makeDir']; // 
+	var OUTPUT_VALUE_FACTOR_PROPS = ['width','height','x','y','regX','regY', 'tlX', 'tlY', 'tfParams.fontSize', 'tfParams.visBoundsTLX', 'tfParams.visBoundsTLY', 'tfParams.visBoundsW', 'tfParams.visBoundsH','makeDir','postExecutePath']; // 
 	var BOOL_PROPS = ['cropToBounds', 'flipX', 'flipY', 'roundOutputValues', 'placeholder', 'reverseOrder', 'makeDir'];
 	var NUM_PROPS = ['quality','scale','forceW','forceH', 'outputOriginX', 'outputOriginX', 'tlX', 'tlY', 'nestlevel'];
 	var OBJ_PROPS = ['tfParams'];
@@ -735,7 +735,9 @@ function processJSX(stream, props){
 			wipeRelativePath = ensureDirPathHasTrailingSlash(wipeRelativePath, pathSep);		
 			configData.basePath = ensureDirPathHasTrailingSlash(configData.basePath, pathSep);		
 			var wipeDir = new Folder(psdContainingDir + configData.basePath + wipeRelativePath);
-			deleteImgsFromDir(wipeDir); 
+			if (wipeDir.exists){
+				deleteImgsFromDir(wipeDir); 
+			}
 		}
 	}
 	
@@ -1449,6 +1451,28 @@ function processJSX(stream, props){
 	if (anyDebugOutput){
 		stream.writeln('debug:*post* hooks complete OK.');
 	}
+	
+	// Call `postExecutePath` if set.
+	
+	if (configData.postExecutePath && trim(configData.postExecutePath).length > 0){
+		
+		var exePaths = trim(configData.postExecutePath).split(',');
+		for (var ep = 0; ep < exePaths.length; ep++){
+			var exePath =  trim(exePaths[ep])
+			var execFile = new File(psdContainingDir + exePath);
+			if (!execFile.exists){
+				alert('postExecutePath not found: `'+psdContainingDir + exePath+'`');
+			} else {
+				stream.writeln('debug:Executing `'+exePath+'`');
+				execFile.execute(); 
+			}
+		}
+		
+	}
+	
+	
+	
+	
 	
 	stream.writeln(
 		JSON.stringify(responseDataAll)
