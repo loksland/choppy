@@ -22,8 +22,6 @@ var Choppy = function() {
 	var nowTime = now.getHours() + ":" + now.getMinutes() + ":" + now.getSeconds();
 	self.pubtime = nowDate+' '+nowTime; // `2018-8-3 11:12:40`
 	
-	
-	
 	self.TEMPLATE_DIR_NAME = 'tpl';
 	self.CONFIG_FILENAME = '.choppy';
 	self.TEMPLATE_PARTS = ['parse', 'header', 'main', 'inter', 'footer'];
@@ -284,19 +282,15 @@ Choppy.prototype.processNext = function() {
 								if (ps == 1){
 									throw new Error('Output tags not found.');
 								} else {
-
 									responseData.outputTags.start = responseData.outputTags.start.split('\\-').join('-');
 									responseData.outputTags.end = responseData.outputTags.end.split('\\-').join('-');
-
 									//console.log(responseData.outputTags.start);
 								}
 							} else {
 								console.log('Found tags: "'+responseData.outputTags.start+'" and "'+responseData.outputTags.end+'".\n');
 								break;
 							}
-
 						}
-
 					}
 
 					fs.writeFileSync(psdContainingDir + responseData.outputFilePath, outputFileContents);
@@ -440,7 +434,6 @@ function processJSX(stream, props){
 	// If a layer comp or layer starts with this char then they will not be included in operatios
 	var IGNORE_PREFIX_CHARS = {'`':true};
 
-
 	var utilMsg = '\n';
 	var doc = app.activeDocument;
 	
@@ -514,7 +507,8 @@ function processJSX(stream, props){
 		throw new Error('No PSD document open.')
 	}
 	
-
+	app.togglePalettes();
+	
 	var configData = null;
 	var outputData = [];
 
@@ -1471,7 +1465,7 @@ function processJSX(stream, props){
 	}
 	
 	
-	
+	app.togglePalettes();
 	
 	
 	stream.writeln(

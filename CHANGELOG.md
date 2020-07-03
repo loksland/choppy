@@ -1,5 +1,6 @@
 # Changelog
 
+- v1.8.24 - (03-07-2020) UI palettes hidden during publishing for perfomance.
 - v1.8.23 - (27-02-2020) Added `postExecutePath` prop and docs.
 - v1.8.22 - (26-02-2020) Added `makeDir` property and documentation.
 - v1.8.21 - (10-02-2020) Added `prefix` and `suffix` string props.
