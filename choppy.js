@@ -419,6 +419,7 @@ function ensurePsdIsActiveDocumentJSX(targetPath, sep){
 		}
 		// Open the doc
 		app.open(target);
+
 		return {path : app.activeDocument.path};
 	}
 

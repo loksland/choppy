@@ -1,5 +1,6 @@
 # Changelog
 
+- v1.8.25 - (10-09-2020) Support for Photoshop 2020 added
 - v1.8.24 - (03-07-2020) UI palettes hidden during publishing for perfomance.
 - v1.8.23 - (27-02-2020) Added `postExecutePath` prop and docs.
 - v1.8.22 - (26-02-2020) Added `makeDir` property and documentation.
