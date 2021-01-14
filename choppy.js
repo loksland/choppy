@@ -138,13 +138,13 @@ Choppy.prototype.processNext = function() {
 	photoshop.invoke(ensurePsdIsActiveDocumentJSX, [targetPsdPath, path.sep], function(error, activeDocument){
 		
 		self.jsxPaths = Choppy.simpleObjDupe(self.jsxPathsCore);
+		
 		// Bypass initial checks if calling standalone JSX without an open PSD
 		if (activeDocument || self.standaloneCmds.length == 0){ 
 			
 			var responseBuffer = '';
-			
 			if (!activeDocument){
-				throw new Error('Active document seems to be a dupe');
+				throw new Error('Active document seems to be a dupe (activeDocument '+(activeDocument ? 'OK' : 'null')+',self.standaloneCmds.length='+self.standaloneCmds.length+')');
 			}
 
 			var psdContainingDir = Choppy.ensureDirPathHasTrailingSlash(activeDocument.path, path.sep);
