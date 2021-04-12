@@ -36,7 +36,7 @@ VERSION_PREV="$(echo -e "${VERSION_PREV}" | tr -d '[:space:]')" # Strip whitespa
 
 # Tick the package version 
 VERSION_NEXT=$(npm version patch --no-git-tag-version)
-VERSION_NEXT=$(echo $VERSION_NEXT | cut -c 2-)
+#VERSION_NEXT=$(echo $VERSION_NEXT | cut -c 2-)
 
 if [[ ${#VERSION_NEXT}  == 0 ]]; then
   echo -e "${RED}Npm version patch failed.${NC}"
@@ -85,9 +85,11 @@ npm publish
 echo -e "${GREEN}Published to NPM.${NC}"
 
 # End of publish script.
-# Perform any additional operations below.
+
 
 npm install choppy -g
+  
+
   
 $SHELL
 

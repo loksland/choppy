@@ -1,6 +1,6 @@
 # Changelog
 
-- v.8.28 - (18-02-2021) Dupe bug debugging
+- v1.8.28 - (18-02-2021) Dupe bug debugging
 - v1.8.27 - (14-01-2021) Debugging dupe bug
 - v1.8.26 - (10-09-2020) Removed debugging output
 - v1.8.25 - (10-09-2020) Support for Photoshop 2020 added
