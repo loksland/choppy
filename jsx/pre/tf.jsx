@@ -5,6 +5,15 @@
 
 (function(){
 
+
+var parseTFContents = function(str){
+
+	str = str.split('\u0003').join('\n');
+	
+	return str;
+}
+
+
 	
 var processTFs = function(){
 
@@ -38,7 +47,8 @@ var processTFs = function(){
 				tfParams.visBoundsH = tfVisBounds.height;
 				
 				
-				tfParams.text = tf.textItem.contents
+				tfParams.text = parseTFContents(tf.textItem.contents);
+				
 				tfParams.font = tf.textItem.font
 				
 				//tfParams.fontSize = tf.textItem.size
