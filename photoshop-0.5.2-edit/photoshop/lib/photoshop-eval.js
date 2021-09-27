@@ -25,7 +25,8 @@ evalInPhotoshop.getName = function(){
     try {
       ;(function(error, Applications){
       
-      	if (Applications.indexOf('Adobe Photoshop 2020') != -1) evalInPhotoshop.NAME = "Adobe Photoshop 2020"; // LMN
+      	if (Applications.indexOf('Adobe Photoshop 2020') != -1) evalInPhotoshop.NAME = "Adobe Photoshop 2021"; // LMN
+        else if (Applications.indexOf('Adobe Photoshop 2020') != -1) evalInPhotoshop.NAME = "Adobe Photoshop 2020"; // LMN
         else if (Applications.indexOf('Adobe Photoshop CC 2018') != -1) evalInPhotoshop.NAME = "Adobe Photoshop CC 2019"; // LMN
         else if (Applications.indexOf('Adobe Photoshop CC 2018') != -1) evalInPhotoshop.NAME = "Adobe Photoshop CC 2018"; // LMN
         else if (Applications.indexOf('Adobe Photoshop CC 2017') != -1) evalInPhotoshop.NAME = "Adobe Photoshop CC 2017"; // LMN

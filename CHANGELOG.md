@@ -1,5 +1,6 @@
 # Changelog
 
+- vv1.8.30 - (27-09-2021) Photoshop 2021 support adde
 - v1.8.29 - (06-05-2021) Parsing line break characters for text input
 - v1.8.28 - (18-02-2021) Dupe bug debugging
 - v1.8.27 - (14-01-2021) Debugging dupe bug
