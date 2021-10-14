@@ -1288,6 +1288,8 @@ function processJSX(stream, props){
 	
 	// Inject output data into template 
 	
+
+	
 	for (p = 0; p < outputData.length; p++){
 		
 		var compTemplateSplit = outputData[p].template.split(TEMPLATE_MULTI_SEP);
@@ -1742,7 +1744,24 @@ function processJSX(stream, props){
 		return null;
 		
 	}
-
+	
+	function getGlobalProp(propName) {
+		
+		propName = String(propName);
+		
+		for (var p in outputData){
+			return outputData[p][propName]
+		}
+		
+		return null;
+		
+	}
+	
+	function getPsdBase(){
+		// %psdBase%
+	}
+	
+	
 	// This function assumes `cleanup-comps` has been run
 	function deleteCommentProp(layerComp, propName) {
 		

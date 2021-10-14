@@ -47,7 +47,7 @@ fi
 
 DATE=$(date +"%d-%m-%Y") # Get date string
 PREV_LOG_LINE_PREFIX="- v$VERSION_PREV"
-LOG_LINE="- v$VERSION_NEXT - ($DATE) $LOG_MESSAGE"
+LOG_LINE="- $VERSION_NEXT - ($DATE) $LOG_MESSAGE"
 
 echo -e "${YELLOW}${LOG_LINE}${NC}"
 

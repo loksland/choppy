@@ -412,6 +412,7 @@ If added to the `pre` queue will try to convert each top-level layer to a layerc
 
 *Available functions:*
 - `console.log(...)` Will output to the current terminal running Choppy.
+- `getGlobalProp(propName)` will return globally defined property.
 
 #### `standalone` scripts
 
