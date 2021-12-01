@@ -1,5 +1,6 @@
 # Changelog
 
+- v1.8.35 - (01-12-2021) Photoshop 2022 support added
 - v1.8.34 - (14-10-2021) Added getGlobalProp()
 - v1.8.33 - (27-09-2021) Photoshop 2021 support added
 - v1.8.29 - (06-05-2021) Parsing line break characters for text input
