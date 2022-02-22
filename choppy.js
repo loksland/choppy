@@ -1204,6 +1204,17 @@ function processJSX(stream, props){
 
 			// Ouput image
 			var exportOptions = new ExportOptionsSaveForWeb();
+			
+			if (outputData[p].matte){
+				var userMatteColor = hexToRGB(outputData[p].matte);
+				var matteColor = new RGBColor();
+				matteColor.red = userMatteColor.r;
+				matteColor.green = userMatteColor.g;
+				matteColor.blue = userMatteColor.b;
+				exportOptions.matteColor = matteColor;
+				alert(matteColor.red +'/' + matteColor.green+'/'+ matteColor.blue)
+			}
+			
 			if (outputData[p].ext == 'png'){
 				exportOptions.PNG8 = false;
 				exportOptions.transparency = true;
@@ -1212,7 +1223,7 @@ function processJSX(stream, props){
 				exportOptions.includeProfile = false;
 				exportOptions.format = SaveDocumentType.PNG;//-8; //SaveDocumentType.PNG; //-24 //JPEG, COMPUSERVEGIF, PNG-8, BMP
 			} else if (outputData[p].ext == 'jpg'){
-				exportOptions = new ExportOptionsSaveForWeb();
+				//exportOptions = new ExportOptionsSaveForWeb();
 				exportOptions.format = SaveDocumentType.JPEG;
 				exportOptions.quality = outputData[p].quality;
 			} else if (outputData[p].ext == 'gif'){
@@ -1223,14 +1234,7 @@ function processJSX(stream, props){
 				exportOptions.forced = ForcedColors.BLACKWHITE;
 				exportOptions.interlaced = false;
 				exportOptions.preserverExactColors = true;
-				if (outputData[p].matte){
-					var userMatteColor = hexToRGB(outputData[p].matte);
-					var matteColor = new RGBColor();
-					matteColor.red = userMatteColor.r;
-					matteColor.green = userMatteColor.g;
-					matteColor.blue = userMatteColor.b;
-					exportOptions.matteColor = matteColor;
-				}
+				
 				exportOptions.colors = outputData[p].colors;
 				exportOptions.transparency = true;
 
