@@ -1212,7 +1212,7 @@ function processJSX(stream, props){
 				matteColor.green = userMatteColor.g;
 				matteColor.blue = userMatteColor.b;
 				exportOptions.matteColor = matteColor;
-				alert(matteColor.red +'/' + matteColor.green+'/'+ matteColor.blue)
+		
 			}
 			
 			if (outputData[p].ext == 'png'){
