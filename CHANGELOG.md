@@ -1,5 +1,6 @@
 # Changelog
 
+- v1.8.38 - (24-02-2022) Accept reg:x123y123 format
 - v1.8.37 - (22-02-2022) Removed alert
 - v1.8.36 - (22-02-2022) Matte color support for jpgs and pngs added
 - v1.8.35 - (01-12-2021) Photoshop 2022 support added

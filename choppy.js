@@ -614,7 +614,6 @@ function processJSX(stream, props){
 				//}
 				
 				compData['base'] = layerComp.name; 
-				
 				compData.layerCompRef = layerComp;
 
 				if (layerComp.name === CONFIG_LAYERCOMP_NAME){
@@ -1660,13 +1659,25 @@ function processJSX(stream, props){
 		// Default: top left
 		var hozP = 0;
 		var vertP = 0;
-
+	
+		
+		if (regStr.charAt(0) == 'x' && regStr.split('y').length == 2) {
+			var coords = regStr.substr(1, regStr.length-1).split('y');
+			if (coords.length == 2){
+				
+				var rx = Number(coords[0]);
+				var ry = Number(coords[1]);
+				
+				return {x: rx, y: ry};
+			}
+		}
+		
 		if (regStr.split(',').length == 2) {
 
 			var coords = regStr.split(',');
 			var rx = Number(coords[0]);
 			var ry = Number(coords[1]);
-
+		
 			return {x: rx, y: ry};
 
 		} else {

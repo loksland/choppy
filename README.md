@@ -147,7 +147,7 @@ Override the reg point for the image. Default is top left. Input values are 2 ch
 the first represents vertical space, the second horizontal. Eg. `TL` = top left,
 `BR` = bottom right, `C` = centered both dimensions, `CR` = centered vert + right aligned,
 `TC` = top aligned + centered horizontally. Alternatively enter coords relative to
-document origin - eg `100,33`.
+document origin - eg `100,33` or `x100y33`.
 - **outputValueFactor** (float)  
 Default 1. All values sent to output templates will be multiplied by this factor. It
 doesn't affect the size of images exported, just the values written for |x|, |y|, |regX|,
