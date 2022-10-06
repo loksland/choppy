@@ -6,22 +6,22 @@ var path = require('path');
 var spawn = require('child_process').spawn;
 
 var Choppy = function() {
-	
+
 	photoshop.invoke(`function closeIfDupe(){
 		var doc = app.activeDocument;
 		if (doc.name.substr(-5) == ' copy'){
 			doc.close(SaveOptions.DONOTSAVECHANGES);
 		}
-	}`,[], function(error){		
+	}`,[], function(error){
 	})
-	
+
 	var self = this;
-	
+
 	var now = new Date();
 	var nowDate = now.getFullYear()+'-'+(now.getMonth()+1)+'-'+now.getDate();
 	var nowTime = now.getHours() + ":" + now.getMinutes() + ":" + now.getSeconds();
 	self.pubtime = nowDate+' '+nowTime; // `2018-8-3 11:12:40`
-	
+
 	self.TEMPLATE_DIR_NAME = 'tpl';
 	self.CONFIG_FILENAME = '.choppy';
 	self.TEMPLATE_PARTS = ['parse', 'header', 'main', 'inter', 'footer'];
@@ -31,25 +31,25 @@ var Choppy = function() {
 	self.templateFilesCore = [];
 	var coreTemplateDirPath = __dirname + path.sep + self.TEMPLATE_DIR_NAME + path.sep;
 	Choppy.addFilePathsInDirToArray(coreTemplateDirPath, self.templateFilesCore);
-	
+
 	// Jsx (Global)
-	
+
 	self.JSX_DIR_NAME = 'jsx';
-	
+
 	self.jsxPathsCore = {};
 	self.jsxPathsCore.pre = loadJsxPaths(path.join(__dirname, 'jsx', 'pre'));
 	self.jsxPathsCore.post = loadJsxPaths(path.join(__dirname, 'jsx', 'post'));
 	self.jsxPathsCore.standalone = loadJsxPaths(path.join(__dirname, 'jsx', 'standalone'));
-	
+
 	// Get args
-	
+
 	self.psdPaths = []; // User wants you to open doc if not already open
 	self.verbose = false;
-	
+
 	self.envVars = {};
-	
+
 	var argv = {_:process.argv.slice(2)}; //require('minimist')(process.argv.slice(2));
-	
+
 	self.standaloneCmds = [];
 	for (var k = 0; k < argv._.length; k++){
 		if (String(argv._[k]).toLowerCase() === 'verbose'){
@@ -63,7 +63,7 @@ var Choppy = function() {
 			self.standaloneCmds.push(argv._[k]);
 		}
 	}
-	
+
 	//if (psdPaths.length === 0){
 	//	psdPaths = ['{active}'];
 	//}
@@ -94,7 +94,7 @@ Choppy.simpleArrDupe = function(arr){
 Choppy.prototype.onPsdDone = function() {
 
 	this.processNext();
-	
+
 }
 Choppy.prototype.processNext = function() {
 
@@ -103,12 +103,12 @@ Choppy.prototype.processNext = function() {
 
 	var activeMode;
 	if (this.psdPaths.length == 0){
-		
+
 		activeMode = true;
 		if (this.psdIndex == 1){
 			return;
 		}
-		
+
 	} else {
 
 		activeMode = false;
@@ -136,12 +136,12 @@ Choppy.prototype.processNext = function() {
 
 	// Get the active doc.
 	photoshop.invoke(ensurePsdIsActiveDocumentJSX, [targetPsdPath, path.sep], function(error, activeDocument){
-		
+
 		self.jsxPaths = Choppy.simpleObjDupe(self.jsxPathsCore);
-		
+
 		// Bypass initial checks if calling standalone JSX without an open PSD
-		if (activeDocument || self.standaloneCmds.length == 0){ 
-			
+		if (activeDocument || self.standaloneCmds.length == 0){
+
 			var responseBuffer = '';
 			if (!activeDocument){
 				throw new Error('Active document seems to be a dupe (activeDocument '+(activeDocument ? 'OK' : 'null')+',self.standaloneCmds.length='+self.standaloneCmds.length+')');
@@ -162,8 +162,8 @@ Choppy.prototype.processNext = function() {
 					baseConfigData = {};
 			}
 
-			// Check for scripts 
-			
+			// Check for scripts
+
 			var localJSXDir = path.join(psdContainingDir, self.JSX_DIR_NAME);
 			if (fs.existsSync(localJSXDir)) {
 				// Will not fail if subdir not exists.
@@ -171,11 +171,11 @@ Choppy.prototype.processNext = function() {
 				self.jsxPaths.post = loadJsxPaths(path.join(localJSXDir, 'post'), self.jsxPaths.post);
 				self.jsxPaths.standalone = loadJsxPaths(path.join(localJSXDir, 'standalone'), self.jsxPaths.standalone);
 			}
-			
+
 		}
-		
+
 		// Call `standalone` commands and exit.
-		
+
 		console.log('\n');
 		for (var i = 0; i < self.standaloneCmds.length; i++){
 			// self.jsxPaths.standalone
@@ -188,7 +188,7 @@ Choppy.prototype.processNext = function() {
 				throw new Error('JSX `standalone` script not found `'+jsxScriptName+'`');
 			}
 			var jsxPath = self.jsxPaths.standalone[jsxScriptName];
-			console.log('Running *standalone* cmd `'+jsxScriptName+'`...');   
+			console.log('Running *standalone* cmd `'+jsxScriptName+'`...');
 			photoshop.invoke(`function (jsxPath){
 				var jsxFile = new File(jsxPath);
 				if (!jsxFile.exists){
@@ -206,9 +206,9 @@ Choppy.prototype.processNext = function() {
 			console.log('Standalone cmd/s complete.\n')
 			return;
 		}
-		
+
 		// Check for templates
-		
+
 		self.templateFiles = Choppy.simpleArrDupe(self.templateFilesCore);
 		var localTemplateDirPath = psdContainingDir + self.TEMPLATE_DIR_NAME + path.sep;
 		if (fs.existsSync(localTemplateDirPath)) {
@@ -216,7 +216,7 @@ Choppy.prototype.processNext = function() {
 		}
 
 		var tplData = self.getTemplateDataFromFiles(self.templateFiles);
-			
+
 		var processStream = photoshop.createStream(processJSX, {tplData:tplData, pathSep:path.sep, baseConfigData:baseConfigData, TEMPLATE_PARTS:self.TEMPLATE_PARTS, jsxPaths:self.jsxPaths, envVars:self.envVars, pubtime: self.pubtime}).on('data', function(data) {
 
 			var dataStr = data.toString();
@@ -229,7 +229,7 @@ Choppy.prototype.processNext = function() {
 					// console.log('Unable to unpack JSX console.log:')
 					//console.log(dataStr.substr(5))
 				}
-				
+
 			} else {
 				responseBuffer += dataStr;
 			}
@@ -299,9 +299,9 @@ Choppy.prototype.processNext = function() {
 				}
 
 				if (rd == responseDataArr.length - 1){ // Last loop only
-					
+
 						self.onPsdDone();
-				
+
 				}
 			}
 
@@ -322,9 +322,9 @@ Choppy.prototype.getTemplateDataFromFiles = function(filePathArr) {
 		var stats = fs.statSync(tplFilePath);
 		if (!stats.isDirectory()){
 			var tplBaseName = path.basename(tplFilePath, path.extname(tplFilePath));
-			
+
 			if (tplBaseName.charAt(0) !== '.'){
-				
+
 				var part = 'main';
 				if (tplBaseName.split('.').length !== 1){
 					for (var i = 0; i < this.TEMPLATE_PARTS.length; i++){
@@ -335,7 +335,7 @@ Choppy.prototype.getTemplateDataFromFiles = function(filePathArr) {
 						}
 					}
 				}
-				
+
 				if (!tplData[tplBaseName]){
 					tplData[tplBaseName] = {};
 				}
@@ -426,23 +426,23 @@ function ensurePsdIsActiveDocumentJSX(targetPath, sep){
 }
 
 function processJSX(stream, props){
-	
+
 	var console = {};
 	console.log = function(){
 		stream.writeln('log:'+JSON.stringify(arguments));
 	}
-	
+
 	// If a layer comp or layer starts with this char then they will not be included in operatios
 	var IGNORE_PREFIX_CHARS = {'`':true};
 
 	var utilMsg = '\n';
 	var doc = app.activeDocument;
-	
+
 	//var selLayerLookup = {};
 
 	var originalDoc = doc;
 	doc = doc.duplicate();
-	
+
 	// Set args
 	var tplData = props.tplData;
 	var pathSep = props.pathSep;
@@ -461,10 +461,10 @@ function processJSX(stream, props){
 
 	var PROP_DEFAULTS = {alt: '', cropToBounds: false, template: 'img', ext: 'jpg', quality: 80, flipX: false, flipY: false, relativePath: './', basePath: './', matte:null, colors:256, scale:1, sizeFileHandle:'', sizeIndex:-1, sizes:null, reg: 'TL', outputValueFactor: 1, regX:0, regY:0, regPercX:0, regPercY:0, forceW:-1, forceH:-1, roundOutputValues:false, boundsComp:'', outputOriginX: 0, outputOriginY: 0, outputOriginLayer:null, placeholder:false, reverseOrder: false, tlX:0, tlY:0, wipeRelativePath: '', pre: '', post:'', parent:'', type:'', tfParams: null, flags: '', pubtime: pubtime, suffix:'',prefix:''};
 	// If obj prop is not set, below will be used as sub prop defaults, should they be referenced by a template
-	var OBJ_PROP_DEFAULTS = {tfParams: {align:'',text:'',font:'',alpha:1.0, color:'#000000',fontStyle:'',fontName:'',fontSize:'', visBoundsTLX:0, visBoundsTLY:0, visBoundsW:0,visBoundsH:0}}; // 
-	
+	var OBJ_PROP_DEFAULTS = {tfParams: {align:'',text:'',font:'',alpha:1.0, color:'#000000',fontStyle:'',fontName:'',fontSize:'', visBoundsTLX:0, visBoundsTLY:0, visBoundsW:0,visBoundsH:0}}; //
+
 	// Which props are affected by |outputValueFactor|
-	var OUTPUT_VALUE_FACTOR_PROPS = ['width','height','x','y','regX','regY', 'tlX', 'tlY', 'tfParams.fontSize', 'tfParams.visBoundsTLX', 'tfParams.visBoundsTLY', 'tfParams.visBoundsW', 'tfParams.visBoundsH','makeDir','postExecutePath']; // 
+	var OUTPUT_VALUE_FACTOR_PROPS = ['width','height','x','y','regX','regY', 'tlX', 'tlY', 'tfParams.fontSize', 'tfParams.visBoundsTLX', 'tfParams.visBoundsTLY', 'tfParams.visBoundsW', 'tfParams.visBoundsH','makeDir','postExecutePath']; //
 	var BOOL_PROPS = ['cropToBounds', 'flipX', 'flipY', 'roundOutputValues', 'placeholder', 'reverseOrder', 'makeDir'];
 	var NUM_PROPS = ['quality','scale','forceW','forceH', 'outputOriginX', 'outputOriginX', 'tlX', 'tlY', 'nestlevel'];
 	var OBJ_PROPS = ['tfParams'];
@@ -483,17 +483,17 @@ function processJSX(stream, props){
 	var REG_LAYER_NAME = '{reg}';
 	var BOUNDS_COMP_NEXT_KEYWORD = '{next}'
 	var BOUNDS_COMP_PREV_KEYWORD = '{prev}'
-	
-	var DEFAULT_PRE = ['cleanup-comps','nestlevel-shorthand','core-shorthand','parent-from-nestlevel','tf']; 
-	var DEFAULT_POST = []; 
-	
+
+	var DEFAULT_PRE = ['cleanup-comps','nestlevel-shorthand','core-shorthand','parent-from-nestlevel','tf'];
+	var DEFAULT_POST = [];
+
 	// Get psd info
 
 	var psdContainingDir = ensureDirPathHasTrailingSlash(originalDoc.path, pathSep);
 	var psdName = originalDoc.name;
 	var psdFullName = originalDoc.fullName;
 	var psdBounds = new Array(0,0,doc.width.value,doc.height.value);
-	
+
 	// Assuming doc has an extension
 
 	var psdNameParts = psdName.split('.');
@@ -503,25 +503,25 @@ function processJSX(stream, props){
 	PROP_DEFAULTS['psdBase'] = psdBase;
 	PROP_DEFAULTS['psdWidth'] = doc.width.value;
 	PROP_DEFAULTS['psdHeight'] = doc.height.value;
-	
+
 	if (!doc){
 		throw new Error('No PSD document open.')
 	}
-	
+
 	app.togglePalettes();
-	
+
 	var configData = null;
 	var outputData = [];
 
 	var compNameCheck = {}
 	var dupeCompNamesPresent = false;
-	
+
 	var delLayerComps = [];
-	
+
 	var processLayerComps = function(configMode){
-		
+
 		var _configData = null;
-		
+
 		for (var i =0; i < doc.layerComps.length; i++){
 
 			var layerComp = doc.layerComps[i];
@@ -544,9 +544,9 @@ function processJSX(stream, props){
 			}
 
 			if (IGNORE_PREFIX_CHARS[layerComp.name.charAt(0)]){
-				
+
 				delLayerComps.push(layerComp);
-				
+
 			} else if ((configMode && layerComp.name === CONFIG_LAYERCOMP_NAME) || (!configMode && layerComp.name !== CONFIG_LAYERCOMP_NAME)){
 
 				// Parse comment vars
@@ -564,7 +564,7 @@ function processJSX(stream, props){
 							while(varVal.charAt(0) === ' '){
 								varVal = varVal.substr(1);
 							}
-							
+
 							if (BOOL_PROPS.indexOf(varName) >= 0){
 								var tmpVarVal = varVal.toLowerCase(0);
 								varVal = false;
@@ -581,12 +581,12 @@ function processJSX(stream, props){
 								varVal =  String(varVal).split('\\t').join('\t');
 							} else if (OBJ_PROPS.indexOf(varName) >= 0){
 								try {
-									var varVal = JSON.parse(varVal);			
+									var varVal = JSON.parse(varVal);
 								} catch(err) {
 									varVal = PROP_DEFAULTS[varName]
 								}
 							}
-							
+
 							compData[varName] = varVal;
 							totalProps++;
 						}
@@ -597,30 +597,30 @@ function processJSX(stream, props){
 				if (totalProps == 0){
 					compData = {alt: layerComp.comment};
 				}
-		
-				// Check relative path 
-				
+
+				// Check relative path
+
 				if (compData['relativePath']){
 					compData['relativePath'] = ensureDirPathHasTrailingSlash(compData['relativePath'].split('/').join(pathSep), pathSep);
 				}
-				
+
 				if (!compData['placeholder'] && (!compData['type'] || compData['type'].length == 0)){
 					compData['type'] = 'img';
 				}
-				
-				// The `name` should be the base now. 
+
+				// The `name` should be the base now.
 				//if (!configMode && layerComp.name !== CONFIG_LAYERCOMP_NAME){
 				//	layerComp.name = compData['prefix'] + layerComp.name + configData['suffix']
 				//}
-				
-				compData['base'] = layerComp.name; 
+
+				compData['base'] = layerComp.name;
 				compData.layerCompRef = layerComp;
 
 				if (layerComp.name === CONFIG_LAYERCOMP_NAME){
 					if (configMode){
 						delete compData['base'];
 						_configData = compData;
-						delLayerComps.push(layerComp); 
+						delLayerComps.push(layerComp);
 					}
 				} else {
 
@@ -630,26 +630,26 @@ function processJSX(stream, props){
 				}
 			}
 		}
-		
-		
+
+
 		if (configMode){
-			
+
 			// Delete comment comps
 			for (var i = 0; i < delLayerComps.length; i++){
 				delLayerComps[i].remove();
 			}
-			
+
 			return _configData;
 		}
-		
+
 	}
-		
+
 	// Config data
 	// -----------
-	
+
 	// Load config data only
 	configData = processLayerComps(true);
-	
+
 	// Extend config data
 	if (configData === null){
 		configData = extendObjWithDefaults({}, CONFIG_PROP_DEFAULTS);
@@ -658,14 +658,14 @@ function processJSX(stream, props){
 	}
 	// Apply defaults to config so they can extend each output img.
 	configData = extendObjWithDefaults(configData, PROP_DEFAULTS);
-	
-	
-	
-	// Read local pre/post JSX script names (based on {choppy} layer (and .choppy json))  
-	
-	var pre = DEFAULT_PRE; 
-	if (configData.pre && typeof configData.pre === 'string' && configData.pre.length > 0){		
-		pre = pre.concat(configData.pre.split(','));		
+
+
+
+	// Read local pre/post JSX script names (based on {choppy} layer (and .choppy json))
+
+	var pre = DEFAULT_PRE;
+	if (configData.pre && typeof configData.pre === 'string' && configData.pre.length > 0){
+		pre = pre.concat(configData.pre.split(','));
 		// Push certain scripts to the start.
 		var index = pre.indexOf('layers-to-comps')
 		if (index > 0) {
@@ -673,16 +673,16 @@ function processJSX(stream, props){
 		    pre.unshift('layers-to-comps');
 		}
 	}
-	
-	var post = DEFAULT_POST; 
-	if (configData.post && typeof configData.post === 'string' && configData.post.length > 0){		
-		post = post.concat(configData.post.split(','));		
+
+	var post = DEFAULT_POST;
+	if (configData.post && typeof configData.post === 'string' && configData.post.length > 0){
+		post = post.concat(configData.post.split(','));
 	}
-	
+
 	// Call `pre` hooks
 	var anyDebugOutput = false;
 	for (var i = 0; i < pre.length; i++){
-		
+
 		var jsxScriptName = pre[i];
 		var extParts = jsxScriptName.split('.');
 		if (extParts.length > 1 && extParts[1].toLowerCase() == 'jsx'){ // Remove ext if set
@@ -710,31 +710,31 @@ function processJSX(stream, props){
 	if (anyDebugOutput){
 		stream.writeln('debug:*pre* hooks complete OK.');
 	}
-	
+
 	// Load layercomps w/comments into outputData
 	processLayerComps();
-	
+
 	takeSnapshot();
-	
+
 	// Flip order of output
 	if (configData.reverseOrder){
 		outputData.reverse();
 	}
-	
-	if (configData.wipeRelativePath.length > 0 ){		
+
+	if (configData.wipeRelativePath.length > 0 ){
 		var wipeRelativePaths = configData.wipeRelativePath.split(',');
-		for (var i = 0; i < wipeRelativePaths.length; i++){		
+		for (var i = 0; i < wipeRelativePaths.length; i++){
 			var wipeRelativePath = wipeRelativePaths[i];
-			wipeRelativePath = applyVarObjToTemplateString(configData, wipeRelativePath, TEMPLATE_VAR_PRE, TEMPLATE_VAR_POST, 1, []);		
-			wipeRelativePath = ensureDirPathHasTrailingSlash(wipeRelativePath, pathSep);		
-			configData.basePath = ensureDirPathHasTrailingSlash(configData.basePath, pathSep);		
+			wipeRelativePath = applyVarObjToTemplateString(configData, wipeRelativePath, TEMPLATE_VAR_PRE, TEMPLATE_VAR_POST, 1, []);
+			wipeRelativePath = ensureDirPathHasTrailingSlash(wipeRelativePath, pathSep);
+			configData.basePath = ensureDirPathHasTrailingSlash(configData.basePath, pathSep);
 			var wipeDir = new Folder(psdContainingDir + configData.basePath + wipeRelativePath);
 			if (wipeDir.exists){
-				deleteImgsFromDir(wipeDir); 
+				deleteImgsFromDir(wipeDir);
 			}
 		}
 	}
-	
+
 	// The number of templates must be defined in {choppy} or base config file.
 	var outputTemplates = configData.template.split(TEMPLATE_MULTI_SEP);
 
@@ -763,17 +763,17 @@ function processJSX(stream, props){
 		templatePartsAdded.push({});
 	}
 
-	// Cache custom template `parse` functions 
+	// Cache custom template `parse` functions
 	var templateParseFnCache = {};
-	
+
 
 	var p;
 	for (p = 0; p < outputData.length; p++){
-		
+
 		outputData[p] = extendObjWithDefaults(outputData[p], configData);
 		// Enforce own "!" props.
 		outputData[p] = extendObjWithDefaults(outputData[p], outputData[p]);
-		
+
 		// Apply prefix and suffix
 		outputData[p].base = outputData[p].prefix + outputData[p].base + outputData[p].suffix
 
@@ -914,15 +914,15 @@ function processJSX(stream, props){
 
 		// If no alt text then clean up base and use as a fallback.
 		if (!outputData[p].alt || outputData[p].alt.length == 0){
-			outputData[p].alt = filenameBaseToAltText(outputData[p].base);
+			outputData[p].alt = ''; //filenameBaseToAltText(outputData[p].base);
 		}
-		
+
 		outputData[p].base = cleanUpFileNameBase(outputData[p].base);
 
 		// applyVarObjToTemplateString(obj,str, pre, post, outputValueFactor, OUTPUT_VALUE_FACTOR_PROPS, roundOutputValues){
-		
+
 		outputData[p].relativePath = applyVarObjToTemplateString(outputData[p], outputData[p].relativePath, TEMPLATE_VAR_PRE, TEMPLATE_VAR_POST, outputData[p].outputValueFactor, OUTPUT_VALUE_FACTOR_PROPS, outputData[p].roundOutputValues)
-		
+
 		// Now you have enough to get src
 
 		// Inject file size handle into output
@@ -953,28 +953,28 @@ function processJSX(stream, props){
 		outputData[p].srcFileName = outputData[p].base + '.' + outputData[p].ext;
 		outputData[p].src = outputData[p].placeholder ? '' : outputData[p].relativePath + outputData[p].srcFileName;
 		outputData[p].exportPath = psdContainingDir + outputData[p].basePath + outputData[p].relativePath + outputData[p].srcFileName;
-		
+
 		if (outputData[p].makeDir){
 			var containingDir = new Folder(psdContainingDir + outputData[p].basePath + outputData[p].relativePath);
 			if (!containingDir.exists){
 				containingDir.create();
 			}
 		}
-		
-		
-		
+
+
+
 		// Save a running list of all export directory paths
 		var exportDirPath = psdContainingDir + outputData[p].basePath + outputData[p].relativePath;
 		if (!exportDirsTaken[exportDirPath]){
 			exportDirs.push(exportDirPath);
 			exportDirsTaken[exportDirPath] = true;
 		}
-		
+
 		// outputOriginLayer
 		// -----------------
 
 		if (outputData[p].outputOriginLayer != null && outputData[p].outputOriginLayer.length > 0){
-			
+
 			if (layerBoundsCacheLayers[outputData[p].outputOriginLayer]){
 
 				outputData[p].outputOriginX = layerBoundsCacheLayers[outputData[p].outputOriginLayer][0];
@@ -1020,7 +1020,7 @@ function processJSX(stream, props){
 				}
 			}
 		}
-		
+
 		// boundsComp
 		// ----------
 
@@ -1064,7 +1064,7 @@ function processJSX(stream, props){
 					revertSnapshot(doc);
 
 					layerCompBoundsCache[cropToBoundsTarget.name] = copyBounds(boundsCompBounds);
-					
+
 				}
 			}
 		}
@@ -1146,12 +1146,12 @@ function processJSX(stream, props){
 		// Apply reg point data
 		outputData[p].x = regPt.x - outputData[p].outputOriginX;
 		outputData[p].y = regPt.y - outputData[p].outputOriginY;
-		
+
 		if (outputData[p].tfParams){
 			outputData[p].tfParams.visBoundsTLX = outputData[p].tfParams.visBoundsTLX - regPt.x;// - outputData[p].outputOriginX;
 			outputData[p].tfParams.visBoundsTLY = outputData[p].tfParams.visBoundsTLY - regPt.y;// - outputData[p].outputOriginY;
 		}
-		
+
 		outputData[p].regX = regPt.x - outputData[p].outputBounds[0];
 		outputData[p].regY = regPt.y - outputData[p].outputBounds[1];
 
@@ -1203,7 +1203,7 @@ function processJSX(stream, props){
 
 			// Ouput image
 			var exportOptions = new ExportOptionsSaveForWeb();
-			
+
 			if (outputData[p].matte){
 				var userMatteColor = hexToRGB(outputData[p].matte);
 				var matteColor = new RGBColor();
@@ -1211,9 +1211,9 @@ function processJSX(stream, props){
 				matteColor.green = userMatteColor.g;
 				matteColor.blue = userMatteColor.b;
 				exportOptions.matteColor = matteColor;
-		
+
 			}
-			
+
 			if (outputData[p].ext == 'png'){
 				exportOptions.PNG8 = false;
 				exportOptions.transparency = true;
@@ -1233,16 +1233,16 @@ function processJSX(stream, props){
 				exportOptions.forced = ForcedColors.BLACKWHITE;
 				exportOptions.interlaced = false;
 				exportOptions.preserverExactColors = true;
-				
+
 				exportOptions.colors = outputData[p].colors;
 				exportOptions.transparency = true;
 
 			} else {
 				throw new Error('Export format "'+outputData[p].ext+'" not found.');
 			}
-			
 
-			
+
+
 			doc.exportDocument(new File(outputData[p].exportPath), ExportType.SAVEFORWEB, exportOptions);
 
 		} else {
@@ -1261,16 +1261,16 @@ function processJSX(stream, props){
 
 			}
 		}
-		
+
 		if (revertRequired){
 			revertSnapshot(doc);
 		}
 
 	}
-	
-	
+
+
 	// Make each child x,y relative to parent's x,y
-	
+
 	var nestLookup = [];
 	for (var mm = 0; mm < outputData.length; mm++){
 		if (!nestLookup[outputData[mm].nestlevel]){
@@ -1288,13 +1288,13 @@ function processJSX(stream, props){
 			}
 		}
 	}
-	
-	// Inject output data into template 
-	
 
-	
+	// Inject output data into template
+
+
+
 	for (p = 0; p < outputData.length; p++){
-		
+
 		var compTemplateSplit = outputData[p].template.split(TEMPLATE_MULTI_SEP);
 		if (compTemplateSplit.length != outputTemplates.length){
 			throw new Error('Layer comp template list must be same length as config comp');
@@ -1305,35 +1305,35 @@ function processJSX(stream, props){
 			var templateIsRawString = template.split(TEMPLATE_VAR_PRE).length > 1 && template.split(TEMPLATE_VAR_POST).length > 1;
 
 			var templateFound = false;
-			
+
 			if (tplData[template] !== undefined){
-				
+
 				for (var t = 0; t < TEMPLATE_PARTS.length; t++){
-					var part = TEMPLATE_PARTS[t];					
-					
+					var part = TEMPLATE_PARTS[t];
+
 					if (tplData[template][part] !== undefined){
-					
+
 						if (part == 'parse'){
-							
+
 							// Load function if needed and cache for next output item
 							if (typeof templateParseFnCache[template] === 'undefined'){
-								
+
 								var parse = null;
-								$.evalFile(tplData[template][part]);		
+								$.evalFile(tplData[template][part]);
 								if (parse === null){
 									throw new Error('Custom `parse` function not found at `'+tplData[template][part]+'`')
 								}
-								templateParseFnCache[template] = parse; 
-								
+								templateParseFnCache[template] = parse;
+
 							}
-							
+
 						} else {
-							
+
 							if (output[ote][part] === undefined){
 								output[ote][part] = [];
 							}
 							templateFound = true;
-							if (part == 'main'){					
+							if (part == 'main'){
 								var mainData = applyVarObjToTemplateString(outputData[p], tplData[template][part], TEMPLATE_VAR_PRE, TEMPLATE_VAR_POST, outputData[p].outputValueFactor, OUTPUT_VALUE_FACTOR_PROPS, outputData[p].roundOutputValues, templateParseFnCache[template]);
 								if (tplData[template]['inter'] !== undefined && p > 0){
 									mainData = tplData[template]['inter'] + mainData;
@@ -1351,33 +1351,33 @@ function processJSX(stream, props){
 									templatePartsAdded[ote][templatePartID] = true;
 								}
 							}
-							
+
 						}
 					}
 				}
 			}
-			
-		
+
+
 			if (!templateFound && templateIsRawString){
 				if (output[ote]['main'] === undefined){
 					output[ote]['main'] = [];
 				}
-		
+
 				output[ote]['main'].push(applyVarObjToTemplateString(outputData[p], template, TEMPLATE_VAR_PRE, TEMPLATE_VAR_POST, outputData[p].outputValueFactor, OUTPUT_VALUE_FACTOR_PROPS, outputData[p].roundOutputValues));
 			}
 
 		}
 
 	}
-	
-	
-	
-	
-	
+
+
+
+
+
 	// Revert doc
 	revertSnapshot(doc);
-	
-	
+
+
 	doc.close(SaveOptions.DONOTSAVECHANGES); // Close dupe doc
 	doc = originalDoc;
 
@@ -1399,13 +1399,13 @@ function processJSX(stream, props){
 		var outputFilePath = '';
 		var outputTags = {};
 		if (configData && configData.outputFilePath && configData.outputFilePath[ote].length > 0){
-			
+
 			configData.basePath = ensureDirPathHasTrailingSlash(configData.basePath, pathSep);
 
 			// You can inject config props into this path
-	
+
 			var injectedOutputFilePath = applyVarObjToTemplateString(configData, configData.outputFilePath[ote], TEMPLATE_VAR_PRE, TEMPLATE_VAR_POST, 1, []);
-									
+
 			outputFilePath = configData.basePath + injectedOutputFilePath; //configData.outputFilePath;
 			if (configData.outputTagStart && configData.outputTagEnd && configData.outputTagStart[ote].length > 0 && configData.outputTagEnd[ote].length > 0){
 				outputTags = {start:configData.outputTagStart[ote], end:configData.outputTagEnd[ote]};
@@ -1422,9 +1422,9 @@ function processJSX(stream, props){
 		responseDataAll.push(responseData);
 
 	}
-	
+
 	// Call `post` hooks
-	
+
 	var anyDebugOutput = false;
 	for (var i = 0; i < post.length; i++){
 		var jsxScriptName = post[i];
@@ -1451,11 +1451,11 @@ function processJSX(stream, props){
 	if (anyDebugOutput){
 		stream.writeln('debug:*post* hooks complete OK.');
 	}
-	
+
 	// Call `postExecutePath` if set.
-	
+
 	if (configData.postExecutePath && trim(configData.postExecutePath).length > 0){
-		
+
 		var exePaths = trim(configData.postExecutePath).split(',');
 		for (var ep = 0; ep < exePaths.length; ep++){
 			var exePath =  trim(exePaths[ep])
@@ -1464,23 +1464,23 @@ function processJSX(stream, props){
 				alert('postExecutePath not found: `'+psdContainingDir + exePath+'`');
 			} else {
 				stream.writeln('debug:Executing `'+exePath+'`');
-				execFile.execute(); 
+				execFile.execute();
 			}
 		}
-		
+
 	}
-	
-	
+
+
 	app.togglePalettes();
-	
-	
+
+
 	stream.writeln(
 		JSON.stringify(responseDataAll)
 	);
 
 	// JSX functions
 	// -------------
-	
+
 
 	// folderRef = Folder(pathDocSrc.fullName.parent + '/' + docBaseName + '/' + IMG_FOLDER_NAME);
 	function deleteImgsFromDir(dir){
@@ -1496,7 +1496,7 @@ function processJSX(stream, props){
 	function getSelectedLayerLookup(layerRef){
 
 		var lookup = {};
-	
+
 		//		var selLayers = _getSelectedLayers();
 		//		for (var zzz = 0; zzz < selLayers.length; zzz++){
 		//			lookup['name:' + selLayers[zzz].name + ',parent:' + selLayers[zzz].parent.name] = true
@@ -1556,7 +1556,7 @@ function processJSX(stream, props){
 		}
 		return ext;
 	}
-	
+
 	function cleanUpFileNameBase(base){
 
 		//base = base.toLowerCase();
@@ -1659,25 +1659,25 @@ function processJSX(stream, props){
 		// Default: top left
 		var hozP = 0;
 		var vertP = 0;
-	
-		
+
+
 		if (regStr.charAt(0) == 'x' && regStr.split('y').length == 2) {
 			var coords = regStr.substr(1, regStr.length-1).split('y');
 			if (coords.length == 2){
-				
+
 				var rx = Number(coords[0]);
 				var ry = Number(coords[1]);
-				
+
 				return {x: rx, y: ry};
 			}
 		}
-		
+
 		if (regStr.split(',').length == 2) {
 
 			var coords = regStr.split(',');
 			var rx = Number(coords[0]);
 			var ry = Number(coords[1]);
-		
+
 			return {x: rx, y: ry};
 
 		} else {
@@ -1725,7 +1725,7 @@ function processJSX(stream, props){
 
 		}
 	}
-	
+
 	// This function assumes `cleanup-comps` has been run
 	// Props are case sensitive
 	function setCommentProp(layerComp, propName, propVal) {
@@ -1734,10 +1734,10 @@ function processJSX(stream, props){
 		var commentParts = layerComp.comment ? layerComp.comment.split('\n') : [];
 		var propDec = propName+': ' + propVal;
 		var foundProp = false;
-		for (var j = 0; j < commentParts.length; j++){			
+		for (var j = 0; j < commentParts.length; j++){
 			if (commentParts[j].split(propName)[0].length == 0){
-				commentParts[j] = propDec;	
-				foundProp = true;		
+				commentParts[j] = propDec;
+				foundProp = true;
 			}
 		}
 		if (!foundProp){
@@ -1749,37 +1749,37 @@ function processJSX(stream, props){
 	// This function assumes `cleanup-comps` has been run
 	// Props are case sensitive
 	function getCommentProp(layerComp, propName) {
-		
+
 		propName = String(propName);
 		var propParts = layerComp.comment ? layerComp.comment.split(propName+':') : [];
-		if (propParts.length > 1 && (propParts[0].length == 0 || propParts[0].charAt(propParts[0].length-1) == '\n')){			
-			return trim(propParts[1].split('\n')[0]);			
+		if (propParts.length > 1 && (propParts[0].length == 0 || propParts[0].charAt(propParts[0].length-1) == '\n')){
+			return trim(propParts[1].split('\n')[0]);
 		}
-		
+
 		return null;
-		
+
 	}
-	
+
 	function getGlobalProp(propName) {
-		
+
 		propName = String(propName);
-		
+
 		for (var p in outputData){
 			return outputData[p][propName]
 		}
-		
+
 		return null;
-		
+
 	}
-	
+
 	function getPsdBase(){
 		// %psdBase%
 	}
-	
-	
+
+
 	// This function assumes `cleanup-comps` has been run
 	function deleteCommentProp(layerComp, propName) {
-		
+
 		propName = String(propName);
 		var propParts = layerComp.comment ? layerComp.comment.split(propName+':') : [];
 		if (propParts.length > 1 && (propParts[0].length == 0 || propParts[0].charAt(propParts[0].length-1) == '\n')){
@@ -1790,11 +1790,11 @@ function processJSX(stream, props){
 			linebreakParts.splice(0, 1);
 			propParts[1] = linebreakParts.join('\n')
 			if (propParts[0].length == 0){
-				propParts.splice(0,1);  
+				propParts.splice(0,1);
 			}
-			layerComp.comment = propParts.join('\n');			
-		}	
-		
+			layerComp.comment = propParts.join('\n');
+		}
+
 	}
 
 	function trim(str){
@@ -1811,7 +1811,7 @@ function processJSX(stream, props){
 				break;
 			}
 		}
-		return str.substr(trimLen);	
+		return str.substr(trimLen);
 	}
 
 	function trimEnd(str){
@@ -1824,7 +1824,7 @@ function processJSX(stream, props){
 				break;
 			}
 		}
-		return str.substr(0, str.length-trimLen);	
+		return str.substr(0, str.length-trimLen);
 	}
 
 	function getVisibleBounds(doc){
@@ -1888,32 +1888,32 @@ function processJSX(stream, props){
 	}
 
 	function applyVarObjToTemplateString(obj, str, pre, post, outputValueFactor, OUTPUT_VALUE_FACTOR_PROPS, roundOutputValues, parseFn, propPrefix){
-		
+
 		propPrefix = typeof propPrefix !== 'undefined' ? propPrefix : '';
-		
+
 		parseFn = typeof parseFn === 'function' ? parseFn : null;
-		
+
 		str = String(str);
 		var outputValueFactorPropsLookup = '#' + OUTPUT_VALUE_FACTOR_PROPS.join('#') + '#';
 		for (var p in obj) {
-			
+
 			var val = obj[p];
 			var individualP = p;
 			var p = propPrefix + p;
-			
+
 			var isObjProp = isNonArrObj(val) && OBJ_PROPS.indexOf(p) >= 0;
-			
+
 			// Apply value factor to applicable props
-			
+
 			if (outputValueFactorPropsLookup.split('#'+p+ '#').length === 2){
 				val = Number(val) * outputValueFactor;
 				if (roundOutputValues){
 					val = Math.round(val);
 				}
 			}
-			
+
 			if (isObjProp){
-				
+
 				// Build a dupe of the object for manipulating and exporting (without affecting subsequent outputting)
 				var _val = {}
 				var valSet = false;
@@ -1923,54 +1923,54 @@ function processJSX(stream, props){
 						_val[f] = val[f];
 					}
 				}
-				
+
 				// Build prop to be injected into dot notation references
 				var valWithDefaults = dupeObj(_val);
-				
+
 				for (var pp in OBJ_PROP_DEFAULTS[p]){
 					var dotSyntaxName = p + '.' + pp;
 					// Populate with all props present
 					if (typeof valWithDefaults[pp] === 'undefined'){
 						valWithDefaults[pp] = OBJ_PROP_DEFAULTS[p][pp]
 					}
-					// Apply output value factor 	
-					if (outputValueFactorPropsLookup.split('#'+dotSyntaxName+ '#').length === 2){// XXX: 
-						
+					// Apply output value factor
+					if (outputValueFactorPropsLookup.split('#'+dotSyntaxName+ '#').length === 2){// XXX:
+
 						valWithDefaults[pp] = Number(valWithDefaults[pp]) * outputValueFactor;
 						if (roundOutputValues){
 							valWithDefaults[pp] = Math.round(valWithDefaults[pp]);
 						}
 						// If whole prop has this subprop then apply the value factor altered value to it as well.
-						if (_val && typeof _val === 'object' && typeof _val[pp] !== 'undefined'){ 
+						if (_val && typeof _val === 'object' && typeof _val[pp] !== 'undefined'){
 							_val[pp] = valWithDefaults[pp];
 						}
-					}	
+					}
 				}
-				
+
 				str = applyVarObjToTemplateString(valWithDefaults, str, pre, post, 1.0, [], false, parseFn, propPrefix + p + '.')
-				
+
 				if (!valSet){
 					val = '';
-				} else {				
+				} else {
 					val = JSON.stringify(_val); // If trying to output the object itself then provide as JSON encoded string]
 				}
-				
+
 			}
-			
+
 			if (parseFn !== null){
 				val = parseFn(p, val);
 			}
 
 			str = str.split(pre+p+post).join(val);
-			
+
 		}
 		return str;
 	}
-	
+
 	function isNonArrObj(obj){
 		return typeof obj === 'object' && !Array.isArray(obj)
 	}
-	
+
 	function rasterizeVectorMask() {
 		try{
 			var id488 = stringIDToTypeID( "rasterizeLayer" );
@@ -2045,7 +2045,7 @@ function processJSX(stream, props){
 		var arr = strPath.split('/');
 		arr.splice(arr.length - 1, 1);
 		return arr.join(pathSep);
-		
+
 	}
 	*/
 
@@ -2215,12 +2215,12 @@ function processJSX(stream, props){
 		}
 		return hasLayerStyle;
 	}
-	
+
 	function debug(obj){
 		alert(JSON.stringify(obj, null, 2))
 	}
-	
-	
+
+
 }
 
 function pr(obj){
@@ -2269,7 +2269,7 @@ function isExtofExtensions(ext, extList){
 
 }
 
-function loadJsxPaths(containingDir, overwriteExisting = {}){ 
+function loadJsxPaths(containingDir, overwriteExisting = {}){
 	var jsxPaths = overwriteExisting;
 	if (fs.existsSync(containingDir) && fs.statSync(containingDir).isDirectory()){
 		var jsxFilenames = getFilesWithExts(containingDir, ['.jsx']);

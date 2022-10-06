@@ -9,20 +9,23 @@
 var parseTFContents = function(str){
 
 	str = str.split('\u0003').join('\n');
-	
+
 	return str;
 }
 
 
-	
+
 var processTFs = function(){
 
 	var doc = app.activeDocument;
 	for (var i =0; i < doc.layerComps.length; i++){
-		var layerComp = doc.layerComps[i];	
+		var layerComp = doc.layerComps[i];
 		var type = getCommentProp(layerComp, 'type');
 		if (type == 'tf' || type == 'btn'){
-			
+
+
+
+
 			setCommentProp(layerComp, 'placeholder', 'true');
 			layerComp.apply();
 			var tf = getFirstVisibleTextField(doc);
@@ -31,73 +34,80 @@ var processTFs = function(){
 				throw new Error('(tf) Text field not found.');
 				//}
 			} else {
-				
+
+
+
 				// 1/3)
 				// See: _2_CSS.jsx `cssToClip.getTextLayerCSS = function(` ...
-				
+
 				var tfParams = {};
-				
-				// Save the visible bounds 
-				
+
+				// Save the visible bounds
+
 				var tfVisBounds = getLayerBoundsRect(tf);
-				
+
 				tfParams.visBoundsTLX = tfVisBounds.x;
 				tfParams.visBoundsTLY = tfVisBounds.y;
 				tfParams.visBoundsW = tfVisBounds.width;
 				tfParams.visBoundsH = tfVisBounds.height;
-				
-				
+
+
 				tfParams.text = parseTFContents(tf.textItem.contents);
-				
+
 				tfParams.font = tf.textItem.font
-				
+
 				//tfParams.fontSize = tf.textItem.size
 				tfParams.alpha = Math.round((tf.opacity*tf.fillOpacity)/100.0)/100.0;
 				tfParams.color = '#' + tf.textItem.color.rgb.hexValue
 				// NOTE: background layers will break indexing
-							
+
 				// 2/3) Get deeper font info.
 				// See: https://github.com/hecht-software/psd-to-html-exporter/blob/master/psd-to-html-exporter.jsx
-				
+
 		    app.activeDocument.activeLayer = tf;
-					
+
 				var ref = new ActionReference();
 				ref.putEnumerated(sTID("layer"), cTID("Ordn"), cTID("Trgt"));
 				var desc = executeActionGet(ref);
-				
+
 				var list = desc.getObjectValue(cTID("Txt ")) ;
 		    var tsr = list.getList(cTID("Txtt"));
-			
+
 				var   tsr0 = tsr.getObjectValue(0)
 		               , pts = cTID("#Pnt")
 		               , textStyle = tsr0.getObjectValue(cTID("TxtS"))
 		               , font = textStyle.getString(cTID("FntN" ))
 		               , style = textStyle.getString(cTID("FntS"))
 									 , size = textStyle.getUnitDoubleValue(cTID("Sz  ", pts))
-				
+
 				tfParams.fontStyle = style;
 				tfParams.fontName = font;
 				tfParams.fontSize = size; //*configData.outputValueFactor;
-				
+
+
+
+
 				// 3/3) Get paragraph alignment
-				
+
 				var keyString = "textKey.paragraphStyleRange.paragraphStyle.align"
 				var keyList = keyString.split('.');
-				
+
 				tfParams.align = desc.getVal(keyList);
 				if (tfParams.align === null){
 					tfParams.align = 'left'; // Default
 				}
 				setCommentProp(layerComp, 'tfParams', JSON.stringify(tfParams));
-			
+
 			}
 		}
-		
+
 	}
 
 }
 
-// Util methods 
+
+
+// Util methods
 // ------------
 
 function getFlatType( desc, ID )
@@ -133,17 +143,17 @@ ActionDescriptor.prototype.getVal = function( keyList, firstListItemOnly  )
 {
 	if (typeof(keyList) == 'string')	// Make keyList an array if not already
 		keyList = keyList.split('.');
-		
+
 	if (typeof( firstListItemOnly ) == "undefined")
 		firstListItemOnly = true;
 
 	// If there are no more keys to traverse, just return this object.
 	if (keyList.length == 0)
 		return this;
-	
+
 	keyStr = keyList.shift();
 	keyID = makeID(keyStr);
-	
+
 	if (this.hasKey( keyID))
 		switch (this.getType( keyID ))
 		{
@@ -163,7 +173,7 @@ ActionList.prototype.getVal = function( keyList, firstListItemOnly )
 {
 	if (typeof(keyList) == 'string')	// Make keyList an array if not already
 		keyList = keyList.split('.');
-		
+
 	if (typeof( firstListItemOnly ) == "undefined")
 		firstListItemOnly = true;
 
@@ -175,7 +185,7 @@ ActionList.prototype.getVal = function( keyList, firstListItemOnly )
 			return this.getObjectValue( 0 ).getVal( keyList, firstListItemOnly );
 		case DescValueType.LISTTYPE:
 			return this.getList( 0 ).getVal( keyList, firstListItemOnly );
-		default: return this.getFlatType( 0 );	
+		default: return this.getFlatType( 0 );
 		}
 	else
 	{
@@ -211,7 +221,7 @@ ActionList.prototype.getFlatType = function( index )
 // Will return null if not found.
 
 function getFirstVisibleTextField(ref) {
-		
+
     var len = ref.layers.length;
     for (var i = 0; i < len; i++) {
         var layer = ref.layers[i];
@@ -224,30 +234,28 @@ function getFirstVisibleTextField(ref) {
 						return layer;
 				}
     }
-		
+
 		return null;
-		
+
 }
 
 function getLayerBoundsRect(layer){
-	
+
 	var tlXi = 0;
 	var tlYi = 1;
 	var brXi = 2;
 	var brYi = 3;
-	
+
 	return {
 		x: layer.bounds[tlXi].value,
 		y: layer.bounds[tlYi].value,
 		width: layer.bounds[brXi].value-layer.bounds[tlXi].value,
 		height: layer.bounds[brYi].value-layer.bounds[tlYi].value
 	}
-	
+
 }
 
 processTFs();
 
 
 })();
-
-
