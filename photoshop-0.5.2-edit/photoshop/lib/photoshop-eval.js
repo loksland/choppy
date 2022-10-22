@@ -20,12 +20,13 @@ var UID = 0
 evalInPhotoshop.NAME = null;
 
 evalInPhotoshop.getName = function(){
-  
+
   if (evalInPhotoshop.NAME == null) {
     try {
       ;(function(error, Applications){
-      
-      	if (Applications.indexOf('Adobe Photoshop 2022') != -1) evalInPhotoshop.NAME = "Adobe Photoshop 2022"; // LMN
+
+      	if (Applications.indexOf('Adobe Photoshop 2022') != -1) evalInPhotoshop.NAME = "Adobe Photoshop 2023"; // LMN
+        else if (Applications.indexOf('Adobe Photoshop 2021') != -1) evalInPhotoshop.NAME = "Adobe Photoshop 2022"; // LMN
         else if (Applications.indexOf('Adobe Photoshop 2021') != -1) evalInPhotoshop.NAME = "Adobe Photoshop 2021"; // LMN
         else if (Applications.indexOf('Adobe Photoshop 2020') != -1) evalInPhotoshop.NAME = "Adobe Photoshop 2020"; // LMN
         else if (Applications.indexOf('Adobe Photoshop CC 2018') != -1) evalInPhotoshop.NAME = "Adobe Photoshop CC 2019"; // LMN

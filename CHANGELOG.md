@@ -1,5 +1,6 @@
 # Changelog
 
+- v1.8.40 - (23-10-2022) Photoshop 2023 support added.
 - v1.8.39 - (06-10-2022) Alt prop needs to be explicitly set now.
 - v1.8.38 - (24-02-2022) Accept reg:x123y123 format
 - v1.8.37 - (22-02-2022) Removed alert
