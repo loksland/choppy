@@ -1,0 +1,4 @@
+Publishing imagemin: 13:31:59
+
+Got path /Users/maker/Desktop/imagemin test/choppy/output
+
