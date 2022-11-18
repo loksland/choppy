@@ -35,8 +35,6 @@ var processTFs = function(){
 				//}
 			} else {
 
-
-
 				// 1/3)
 				// See: _2_CSS.jsx `cssToClip.getTextLayerCSS = function(` ...
 
@@ -51,7 +49,6 @@ var processTFs = function(){
 				tfParams.visBoundsW = tfVisBounds.width;
 				tfParams.visBoundsH = tfVisBounds.height;
 
-
 				tfParams.text = parseTFContents(tf.textItem.contents);
 
 				tfParams.font = tf.textItem.font
@@ -60,6 +57,9 @@ var processTFs = function(){
 				tfParams.alpha = Math.round((tf.opacity*tf.fillOpacity)/100.0)/100.0;
 				tfParams.color = '#' + tf.textItem.color.rgb.hexValue
 				// NOTE: background layers will break indexing
+
+				tfParams.boxW = tf.textItem.width
+				tfParams.boxH = tf.textItem.height
 
 				// 2/3) Get deeper font info.
 				// See: https://github.com/hecht-software/psd-to-html-exporter/blob/master/psd-to-html-exporter.jsx

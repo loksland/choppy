@@ -1,5 +1,6 @@
 # Changelog
 
+- v1.8.42 - (18-11-2022) Bounding box props, tfParams.boxW and tfParams.boxH added.
 - v1.8.41 - (14-11-2022) imagemin post hook added.
 - v1.8.40 - (23-10-2022) Photoshop 2023 support added.
 - v1.8.39 - (06-10-2022) Alt prop needs to be explicitly set now.
