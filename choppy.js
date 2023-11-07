@@ -459,14 +459,14 @@ function processJSX(stream, props){
 
 	// The default image prop fallbacks.
 
-	var PROP_DEFAULTS = {alt: '', cropToBounds: false, template: 'img', ext: 'jpg', quality: 80, flipX: false, flipY: false, relativePath: './', basePath: './', matte:null, colors:256, scale:1, sizeFileHandle:'', sizeIndex:-1, sizes:null, reg: 'TL', outputValueFactor: 1, regX:0, regY:0, regPercX:0, regPercY:0, forceW:-1, forceH:-1, roundOutputValues:false, boundsComp:'', outputOriginX: 0, outputOriginY: 0, outputOriginLayer:null, placeholder:false, reverseOrder: false, tlX:0, tlY:0, wipeRelativePath: '', pre: '', post:'', parent:'', type:'', tfParams: null, flags: '', pubtime: pubtime, suffix:'',prefix:''};
+	var PROP_DEFAULTS = {alt: '', cropToBounds: false, template: 'img', ext: 'jpg', quality: 80, flipX: false, flipY: false, relativePath: './', basePath: './', matte:null, colors:256, scale:1, sizeFileHandle:'', sizeIndex:-1, sizes:null, reg: 'TL', outputValueFactor: 1, regX:0, regY:0, regPercX:0, regPercY:0, forceW:-1, forceH:-1, forceGrid:-1, roundOutputValues:false, boundsComp:'', outputOriginX: 0, outputOriginY: 0, outputOriginLayer:null, placeholder:false, reverseOrder: false, tlX:0, tlY:0, wipeRelativePath: '', pre: '', post:'', parent:'', type:'', tfParams: null, flags: '', pubtime: pubtime, suffix:'',prefix:''};
 	// If obj prop is not set, below will be used as sub prop defaults, should they be referenced by a template
 	var OBJ_PROP_DEFAULTS = {tfParams: {align:'',text:'',font:'',alpha:1.0, color:'#000000',fontStyle:'',fontName:'',fontSize:'', visBoundsTLX:0, visBoundsTLY:0, visBoundsW:0,visBoundsH:0,boxW:0,boxH:0}}; //
 
 	// Which props are affected by |outputValueFactor|
 	var OUTPUT_VALUE_FACTOR_PROPS = ['width','height','x','y','regX','regY', 'tlX', 'tlY', 'tfParams.fontSize', 'tfParams.visBoundsTLX', 'tfParams.visBoundsTLY', 'tfParams.visBoundsW', 'tfParams.visBoundsH','makeDir','postExecutePath','tfParams.boxW','tfParams.boxW']; //
 	var BOOL_PROPS = ['cropToBounds', 'flipX', 'flipY', 'roundOutputValues', 'placeholder', 'reverseOrder', 'makeDir'];
-	var NUM_PROPS = ['quality','scale','forceW','forceH', 'outputOriginX', 'outputOriginX', 'tlX', 'tlY', 'nestlevel'];
+	var NUM_PROPS = ['quality','scale','forceW','forceH','forceGrid', 'outputOriginX', 'outputOriginX', 'tlX', 'tlY', 'nestlevel'];
 	var OBJ_PROPS = ['tfParams'];
 	var NEWLINE_PROPS = ['template'];
 	// These will have a trailing slash added if needed.
@@ -1091,7 +1091,7 @@ function processJSX(stream, props){
 		if (outputData[p].cropToBounds){
 
 			if (boundsCompBounds){
-				outputBounds = boundsCompBounds;
+				outputBounds = boundsCompBounds; // References a comp to get bounds
 			} else {
 
 				if (cacheLayerCompBounds && layerCompBoundsCache[layerComp.name]){
@@ -1100,7 +1100,15 @@ function processJSX(stream, props){
 					// Only flatten if cropping
 					flattenTopLevelLayers(doc, true, false, null, IGNORE_PREFIX_CHARS);
 					revertRequired = true; // A revert is required whether a dry-run or not
+
 					outputBounds = getVisibleBounds(doc);
+          
+          if (outputData[p].forceGrid > 0){
+            outputBounds[0] = Math.floor(outputBounds[0]/outputData[p].forceGrid) * outputData[p].forceGrid;
+            outputBounds[1] = Math.floor(outputBounds[1]/outputData[p].forceGrid) * outputData[p].forceGrid;
+            outputBounds[2] = Math.ceil(outputBounds[2]/outputData[p].forceGrid) * outputData[p].forceGrid;
+            outputBounds[3] = Math.ceil(outputBounds[3]/outputData[p].forceGrid) * outputData[p].forceGrid;
+          }
 				}
 			}
 
@@ -1108,10 +1116,14 @@ function processJSX(stream, props){
 			outputBounds = copyBounds(psdBounds);
 		}
 
+
+    
+
 		var cropBounds = copyBounds(outputBounds)
 		outputData[p].outputBounds = outputBounds;
 
-		// Resize bounds to accomodate cropping - this way reg point will be correct
+		// Resize bounds to accomodate cropping - 
+    // this way when the canvas is resized to `forceW` / `forceH` the reg point (if based on bounds) will be in the correct position.
 
 		var forceW;
 		var forceH;
@@ -1139,6 +1151,11 @@ function processJSX(stream, props){
 		if (!regPt){
 			regPt = {x: parseInt(outputBounds[0], 10), y: parseInt(outputBounds[1], 10)};
 		}
+
+    // Eg. convert `BC` to 0.5,1.0:
+    // var gridRegScalar = getRegPtFromRegStringAndBounds('C', [0,0,1,1]);
+    // alert(gridRegScalar.x + ',' + gridRegScalar.y)
+
 
 		outputData[p].tlX = outputData[p].outputBounds[0] - outputData[p].outputOriginX;
 		outputData[p].tlY = outputData[p].outputBounds[1] - outputData[p].outputOriginY;
@@ -1174,7 +1191,7 @@ function processJSX(stream, props){
 			}
 
 			if (outputData[p].forceW > 0 || outputData[p].forceH > 0){
-				doc.resizeCanvas(UnitValue(forceW,"px"),UnitValue(forceH,"px"), AnchorPosition.MIDDLECENTER);
+				doc.resizeCanvas(UnitValue(forceW,"px"),UnitValue(forceH,"px"), AnchorPosition.MIDDLECENTER); // Docs: https://theiviaxx.github.io/photoshop-docs/Photoshop/AnchorPosition.html
 			}
 
 			if (outputData[p].flipX){
@@ -1191,6 +1208,7 @@ function processJSX(stream, props){
 
 				revertRequired = true;
 				doc.resizeImage(UnitValue(doc.width.value * outputData[p].scale,"px"),null,null,ResampleMethod.BICUBIC);
+
 				// Update dims
 				outputData[p].width = String(doc.width.value);
 				outputData[p].height = String(doc.height.value);
@@ -1245,8 +1263,6 @@ function processJSX(stream, props){
 			} else {
 				throw new Error('Export format "'+outputData[p].ext+'" not found.');
 			}
-
-
 
 			doc.exportDocument(new File(outputData[p].exportPath), ExportType.SAVEFORWEB, exportOptions);
 
@@ -1660,7 +1676,6 @@ function processJSX(stream, props){
 		// Default: top left
 		var hozP = 0;
 		var vertP = 0;
-
 
 		if (regStr.charAt(0) == 'x' && regStr.split('y').length == 2) {
 			var coords = regStr.substr(1, regStr.length-1).split('y');

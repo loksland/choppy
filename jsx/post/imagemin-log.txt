@@ -1,4 +1,4 @@
-Publishing imagemin: 13:31:59
+Publishing imagemin: 11:02:25
 
-Got path /Users/maker/Desktop/imagemin test/choppy/output
+Got path /Users/maker/Dropbox/Projects/pixel-tile/art/../pxl/public/tiles
 

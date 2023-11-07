@@ -120,6 +120,8 @@ Set the number of colors for a gif. 1-256.
 - **forceW** and **forceH** (integer)
 After being cropped to bounds and before applying scaling, the canvas will be resized to
 these pixel dimensions. Default is -1 which will not be applied.
+- **forceGrid** (integer)  
+Provide a grid size (eg. 16) and all outputted images will be cropped to whole tiles relative to document origin.
 - **scale**  (float)
 Scale the output. Default 1.0. Eg 0.5 will output 50% size.  
 Optionally enter simple expressions to be evaluated. Eg. 2/3
