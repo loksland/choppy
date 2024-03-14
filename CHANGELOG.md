@@ -1,5 +1,6 @@
 # Changelog
 
+- v1.8.44 - (15-03-2024) Updated Readme
 - v1.8.43 - (07-11-2023) Added 'forceGrid' property and documentation.
 - v1.8.42 - (18-11-2022) Bounding box props, tfParams.boxW and tfParams.boxH added.
 - v1.8.41 - (14-11-2022) imagemin post hook added.

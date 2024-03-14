@@ -1263,7 +1263,7 @@ function processJSX(stream, props){
 			} else {
 				throw new Error('Export format "'+outputData[p].ext+'" not found.');
 			}
-
+      //alert(outputData[p].exportPath);
 			doc.exportDocument(new File(outputData[p].exportPath), ExportType.SAVEFORWEB, exportOptions);
 
 		} else {
