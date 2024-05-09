@@ -1,1 +1,1 @@
-__HOME__/Dropbox/Projects/pixel-tile/art/../pxl/public/tiles
+__HOME__/Dropbox/Freelance/ff24/art/badge/../../dev/public/anim-assets/badgeanim

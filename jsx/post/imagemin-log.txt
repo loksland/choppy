@@ -1,4 +1,4 @@
-Publishing imagemin: 11:02:25
+Publishing imagemin: 09:48:02
 
-Got path /Users/maker/Dropbox/Projects/pixel-tile/art/../pxl/public/tiles
+Got path /Users/maker/Dropbox/Freelance/ff24/art/badge/../../dev/public/anim-assets/badgeanim
 
