@@ -25,7 +25,8 @@ evalInPhotoshop.getName = function(){
     try {
       ;(function(error, Applications){
 
-      	if (Applications.indexOf('Adobe Photoshop 2024') != -1) evalInPhotoshop.NAME = "Adobe Photoshop 2024"; // LMN
+      	if (Applications.indexOf('Adobe Photoshop 2025') != -1) evalInPhotoshop.NAME = "Adobe Photoshop 2025"; // LMN
+        else if (Applications.indexOf('Adobe Photoshop 2024') != -1) evalInPhotoshop.NAME = "Adobe Photoshop 2024"; // LMN
         else if (Applications.indexOf('Adobe Photoshop 2023') != -1) evalInPhotoshop.NAME = "Adobe Photoshop 2023"; // LMN
         else if (Applications.indexOf('Adobe Photoshop 2022') != -1) evalInPhotoshop.NAME = "Adobe Photoshop 2022"; // LMN
         else if (Applications.indexOf('Adobe Photoshop 2021') != -1) evalInPhotoshop.NAME = "Adobe Photoshop 2021"; // LMN
