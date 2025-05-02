@@ -1,6 +1,6 @@
 {
   "name": "choppy",
-  "version": "1.8.46",
+  "version": "1.8.47",
   "description": "It slices! It dices!",
   "main": "choppy.js",
   "scripts": {
