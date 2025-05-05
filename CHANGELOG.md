@@ -1,5 +1,6 @@
 # Changelog
 
+- v1.8.48 - (05-05-2025) Default nestlevel added
 - v1.8.47 - (02-05-2025) Added support for layer type: guide
 - v1.8.46 - (13-01-2025) Photoshop 2025 supported
 - v1.8.45 - (10-05-2024) Photoshop 2024 support added
