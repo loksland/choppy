@@ -452,6 +452,8 @@ function processJSX(stream, props){
 	var envVars = props.envVars;
 	var pubtime = props.pubtime;
 
+
+
 	//stream.writeln('debug:var tplData=' + JSON.stringify(tplData) +';');
 	//stream.writeln('debug:var pathSep=' + JSON.stringify(pathSep) +';');
 	//stream.writeln('debug:var baseConfigData=' + JSON.stringify(baseConfigData) +';');
@@ -1312,7 +1314,7 @@ function processJSX(stream, props){
 
 	// Inject output data into template
 
-
+  
 
 	for (p = 0; p < outputData.length; p++){
 
@@ -1775,6 +1777,10 @@ function processJSX(stream, props){
 		return null;
 
 	}
+
+  function getCallSystem(){
+    return system.callSystem;
+  }
 
 	function getGlobalProp(propName) {
 

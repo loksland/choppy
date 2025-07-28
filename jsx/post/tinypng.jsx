@@ -8,6 +8,8 @@
 
 // Open the given file, and compress with TinyPNG. 
 function compressFile(file) {
+
+
   var document = open(file);
 
   if (document.mode == DocumentMode.INDEXEDCOLOR) {
