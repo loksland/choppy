@@ -1506,7 +1506,7 @@ function processJSX(stream, props){
 	    if (!dir.exists){
 	        alert('Img dir not found: `'+dir.fullName+'`');
 	    }
-	    var files = dir.getFiles(/.+\.(?:gif|jpg|jpeg|bmp|png)$/i);
+	    var files = dir.getFiles(/.+\.(?:gif|jpg|jpeg|bmp|png|webp)$/i);
 	    for (var i = 0; i < files.length; i++){
 	        files[i].remove()
 	    }

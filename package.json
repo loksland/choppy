@@ -1,6 +1,6 @@
 {
   "name": "choppy",
-  "version": "1.8.49",
+  "version": "1.8.50",
   "description": "It slices! It dices!",
   "main": "choppy.js",
   "scripts": {
@@ -32,7 +32,6 @@
   "bin": {
     "choppy": "choppy.js"
   },
-  "devDependencies": {},
   "dependencies": {
     "photoshop": "0.5.2"
   }
