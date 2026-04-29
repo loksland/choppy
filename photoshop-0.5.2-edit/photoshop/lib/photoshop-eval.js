@@ -21,28 +21,64 @@ evalInPhotoshop.NAME = null;
 
 evalInPhotoshop.getName = function(){
 
-  if (evalInPhotoshop.NAME == null) {
+
+  
+
+    if (evalInPhotoshop.NAME == null) {
     try {
       ;(function(error, Applications){
 
-      	if (Applications.indexOf('Adobe Photoshop 2026') != -1) evalInPhotoshop.NAME = "Adobe Photoshop 2026"; // LMN
-         else if (Applications.indexOf('Adobe Photoshop 2025') != -1) evalInPhotoshop.NAME = "Adobe Photoshop 2025"; // LMN
-        else if (Applications.indexOf('Adobe Photoshop 2024') != -1) evalInPhotoshop.NAME = "Adobe Photoshop 2024"; // LMN
-        else if (Applications.indexOf('Adobe Photoshop 2023') != -1) evalInPhotoshop.NAME = "Adobe Photoshop 2023"; // LMN
-        else if (Applications.indexOf('Adobe Photoshop 2022') != -1) evalInPhotoshop.NAME = "Adobe Photoshop 2022"; // LMN
-        else if (Applications.indexOf('Adobe Photoshop 2021') != -1) evalInPhotoshop.NAME = "Adobe Photoshop 2021"; // LMN
-        else if (Applications.indexOf('Adobe Photoshop 2020') != -1) evalInPhotoshop.NAME = "Adobe Photoshop 2020"; // LMN
-        else if (Applications.indexOf('Adobe Photoshop CC 2018') != -1) evalInPhotoshop.NAME = "Adobe Photoshop CC 2019"; // LMN
-        else if (Applications.indexOf('Adobe Photoshop CC 2018') != -1) evalInPhotoshop.NAME = "Adobe Photoshop CC 2018"; // LMN
-        else if (Applications.indexOf('Adobe Photoshop CC 2017') != -1) evalInPhotoshop.NAME = "Adobe Photoshop CC 2017"; // LMN
-        else if (Applications.indexOf('Adobe Photoshop CC 2015') != -1) evalInPhotoshop.NAME = "Adobe Photoshop CC 2015";
-        else if (Applications.indexOf('Adobe Photoshop CC 2014') != -1) evalInPhotoshop.NAME = "Adobe Photoshop CC 2014";
-        else if (Applications.indexOf('Adobe Photoshop CC') != -1) evalInPhotoshop.NAME = "Adobe Photoshop CC";
-        else if (Applications.indexOf('Adobe Photoshop CS6') != -1) evalInPhotoshop.NAME = "Adobe Photoshop CS6";
-        else if (Applications.indexOf('Adobe Photoshop CS5') != -1) evalInPhotoshop.NAME = "Adobe Photoshop CS5";
+        for (var i = 0; i < Applications.length; i++) {
+            if (Applications[i].indexOf('Adobe Photoshop') === 0) {
+                evalInPhotoshop.NAME = Applications[i];
+                break; // Stop looping once we find a match
+            }
+        }
+
+      	// if (Applications.indexOf('Adobe Photoshop 2026') != -1) evalInPhotoshop.NAME = "Adobe Photoshop 2026"; // LMN
+        //  else if (Applications.indexOf('Adobe Photoshop 2025') != -1) evalInPhotoshop.NAME = "Adobe Photoshop 2025"; // LMN
+        // else if (Applications.indexOf('Adobe Photoshop 2024') != -1) evalInPhotoshop.NAME = "Adobe Photoshop 2024"; // LMN
+        // else if (Applications.indexOf('Adobe Photoshop 2023') != -1) evalInPhotoshop.NAME = "Adobe Photoshop 2023"; // LMN
+        // else if (Applications.indexOf('Adobe Photoshop 2022') != -1) evalInPhotoshop.NAME = "Adobe Photoshop 2022"; // LMN
+        // else if (Applications.indexOf('Adobe Photoshop 2021') != -1) evalInPhotoshop.NAME = "Adobe Photoshop 2021"; // LMN
+        // else if (Applications.indexOf('Adobe Photoshop 2020') != -1) evalInPhotoshop.NAME = "Adobe Photoshop 2020"; // LMN
+        // else if (Applications.indexOf('Adobe Photoshop CC 2018') != -1) evalInPhotoshop.NAME = "Adobe Photoshop CC 2019"; // LMN
+        // else if (Applications.indexOf('Adobe Photoshop CC 2018') != -1) evalInPhotoshop.NAME = "Adobe Photoshop CC 2018"; // LMN
+        // else if (Applications.indexOf('Adobe Photoshop CC 2017') != -1) evalInPhotoshop.NAME = "Adobe Photoshop CC 2017"; // LMN
+        // else if (Applications.indexOf('Adobe Photoshop CC 2015') != -1) evalInPhotoshop.NAME = "Adobe Photoshop CC 2015";
+        // else if (Applications.indexOf('Adobe Photoshop CC 2014') != -1) evalInPhotoshop.NAME = "Adobe Photoshop CC 2014";
+        // else if (Applications.indexOf('Adobe Photoshop CC') != -1) evalInPhotoshop.NAME = "Adobe Photoshop CC";
+        // else if (Applications.indexOf('Adobe Photoshop CS6') != -1) evalInPhotoshop.NAME = "Adobe Photoshop CS6";
+        // else if (Applications.indexOf('Adobe Photoshop CS5') != -1) evalInPhotoshop.NAME = "Adobe Photoshop CS5";
+
+
+
       }(null, require('fs').readdirSync('/Applications')));
     } catch(e){}
   }
+
+  // if (evalInPhotoshop.NAME == null) {
+  //   try {
+  //     ;(function(error, Applications){
+
+  //     	if (Applications.indexOf('Adobe Photoshop 2026') != -1) evalInPhotoshop.NAME = "Adobe Photoshop 2026"; // LMN
+  //        else if (Applications.indexOf('Adobe Photoshop 2025') != -1) evalInPhotoshop.NAME = "Adobe Photoshop 2025"; // LMN
+  //       else if (Applications.indexOf('Adobe Photoshop 2024') != -1) evalInPhotoshop.NAME = "Adobe Photoshop 2024"; // LMN
+  //       else if (Applications.indexOf('Adobe Photoshop 2023') != -1) evalInPhotoshop.NAME = "Adobe Photoshop 2023"; // LMN
+  //       else if (Applications.indexOf('Adobe Photoshop 2022') != -1) evalInPhotoshop.NAME = "Adobe Photoshop 2022"; // LMN
+  //       else if (Applications.indexOf('Adobe Photoshop 2021') != -1) evalInPhotoshop.NAME = "Adobe Photoshop 2021"; // LMN
+  //       else if (Applications.indexOf('Adobe Photoshop 2020') != -1) evalInPhotoshop.NAME = "Adobe Photoshop 2020"; // LMN
+  //       else if (Applications.indexOf('Adobe Photoshop CC 2018') != -1) evalInPhotoshop.NAME = "Adobe Photoshop CC 2019"; // LMN
+  //       else if (Applications.indexOf('Adobe Photoshop CC 2018') != -1) evalInPhotoshop.NAME = "Adobe Photoshop CC 2018"; // LMN
+  //       else if (Applications.indexOf('Adobe Photoshop CC 2017') != -1) evalInPhotoshop.NAME = "Adobe Photoshop CC 2017"; // LMN
+  //       else if (Applications.indexOf('Adobe Photoshop CC 2015') != -1) evalInPhotoshop.NAME = "Adobe Photoshop CC 2015";
+  //       else if (Applications.indexOf('Adobe Photoshop CC 2014') != -1) evalInPhotoshop.NAME = "Adobe Photoshop CC 2014";
+  //       else if (Applications.indexOf('Adobe Photoshop CC') != -1) evalInPhotoshop.NAME = "Adobe Photoshop CC";
+  //       else if (Applications.indexOf('Adobe Photoshop CS6') != -1) evalInPhotoshop.NAME = "Adobe Photoshop CS6";
+  //       else if (Applications.indexOf('Adobe Photoshop CS5') != -1) evalInPhotoshop.NAME = "Adobe Photoshop CS5";
+  //     }(null, require('fs').readdirSync('/Applications')));
+  //   } catch(e){}
+  // }
   return evalInPhotoshop.NAME;
 }
 

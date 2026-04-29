@@ -1,5 +1,6 @@
 # Changelog
 
+- v1.8.52 - (29-04-2026) Universal Photoshop app version support
 - v1.8.51 - (29-04-2026) Support new Photoshop version
 - v1.8.50 - (14-08-2025) Updating wipe dir to include webp
 - v1.8.49 - (28-07-2025) Added WEBP support
