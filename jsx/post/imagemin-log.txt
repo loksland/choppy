@@ -1,4 +1,4 @@
-Publishing imagemin: 09:48:02
+Publishing imagemin: 12:39:27
 
-Got path /Users/maker/Dropbox/Freelance/ff24/art/badge/../../dev/public/anim-assets/badgeanim
+Got path /Users/maker/Dropbox/Freelance/_NR MUS 65 Brighter Super eDM/edm-builder-2026/art/../src/images
 
